@@ -288,3 +288,42 @@ Cuando el sistema alcance una versión estable se evaluará:
 - Mejoras avanzadas de autenticación.
 - Reportes.
 - Exportación de información.
+
+## Configuración Supabase
+
+Actualmente la aplicación utiliza la configuración de Supabase directamente desde el frontend mediante el archivo:
+
+js/config.js
+
+Este archivo contiene:
+
+- URL pública del proyecto Supabase.
+- Clave pública anon (anon key).
+
+Estas credenciales son apropiadas para una aplicación frontend porque Supabase está diseñado para que la protección de datos dependa de:
+
+- Row Level Security (RLS).
+- Policies.
+- Control de autenticación.
+- Restricciones en la base de datos.
+
+Actualmente:
+
+- Existe un único usuario registrado.
+- RLS todavía no está activado.
+- La aplicación se encuentra en etapa de desarrollo funcional.
+
+## Futuro
+
+Cuando se implemente:
+
+- autenticación multiusuario;
+- roles;
+- permisos;
+- migración a Next.js;
+
+se revisará:
+
+- manejo de variables de entorno;
+- separación entre configuración pública y privada;
+- políticas de seguridad.

@@ -46,7 +46,6 @@ Versión inicial documentada del proyecto.
 
 # Próximas versiones previstas
 
-
 ## v0.2.0
 
 Objetivo:
@@ -104,3 +103,17 @@ Incluye:
 - Roles.
 - RLS.
 - Documentación completa.
+
+## Configuración Supabase documentada
+
+    Se documenta la configuración actual del cliente Supabase.
+
+    Estado:
+
+    ✓ URL pública configurada.
+    ✓ Anon key utilizada correctamente.
+    ✓ No existen claves privadas expuestas.
+
+    Pendiente:
+
+    - Implementar manejo avanzado de configuración durante la migración futura.
