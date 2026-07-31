@@ -1,0 +1,624 @@
+/* =========================================================================
+   1. VARIABLES Y CONFIGURACIÓN GENERAL (Mobile-First)
+   ========================================================================= */
+:root {
+    --bg-main: #f8fafc;
+    --bg-header: #1e293b;
+    --bg-aside: #0f172a;
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --danger: #ef4444;
+    --border-color: #e2e8f0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* =========================================================================
+   2. HEADER & CONTROL DE USUARIO (Móvil por defecto)
+   ========================================================================= */
+.app-header {
+    height: 64px;
+    background: var(--bg-header);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: relative;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.app-logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.user-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar-container {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #475569;
+    border: 2px solid #475569;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.btn-logout {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+/* Botón de Hamburguesa */
+.menu-toggle-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 24px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 110;
+}
+
+.menu-toggle-btn .bar {
+    width: 24px;
+    height: 3px;
+    background-color: white;
+    border-radius: 10px;
+    transition: all 0.3s linear;
+}
+
+/* Animación de la hamburguesa a X */
+.menu-toggle-btn.open .bar:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.menu-toggle-btn.open .bar:nth-child(2) { opacity: 0; }
+.menu-toggle-btn.open .bar:nth-child(3) { transform: rotate(-45deg) translate(4px, -5px); }
+
+/* =========================================================================
+   3. MENÚ LATERAL ASIDE (Modo Drawer Desplegable para Móvil)
+   ========================================================================= */
+.app-body {
+    display: flex;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-aside {
+    position: absolute;
+    top: 0;
+    left: -260px; /* Escondido por defecto en móvil */
+    width: 260px;
+    height: 100%;
+    background: var(--bg-aside);
+    color: white;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 90;
+    transition: left 0.3s ease-in-out;
+}
+
+.app-aside.open {
+    left: 0; /* Desplegado en móvil al hacer click */
+}
+
+.aside-header h3 {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 8px;
+}
+
+.menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.menu-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    text-align: left;
+    padding: 6px 6px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.menu-btn:hover, .menu-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+/* Capa oscura trasera */
+.aside-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 80;
+}
+
+.aside-overlay.open { display: block; }
+
+/* =========================================================================
+   4. CONTENEDOR PRINCIPAL Y TABLAS (Mobile-First / Con Scroll Horizontal)
+   ========================================================================= */
+.app-main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;     /* Activa el scroll vertical */
+    width: 100%;
+    max-height: 85vh;     /* Se adapta al 85% de la altura de la pantalla */
+    position: relative;
+    background-color: #ffffff;
+}
+
+.header-seccion {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    z-index: 10;
+    padding: 15px 0;
+    margin: 0;
+}
+
+.header-seccion h2 { font-size: 1.4rem; color: var(--text-primary); margin-bottom: 4px; }
+.header-seccion p { color: var(--text-muted); font-size: 0.9rem; }
+
+/* Contenedor responsivo para tablas */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid var(--border-color);
+    overflow-y: visible;
+}
+
+.table-control-scroll,
+.table-clases-scroll,
+.table-alumnos-scroll,
+.table-profesores-scroll {
+    max-height: calc(85vh - 210px);
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.app-main:has(.table-control-scroll) {
+    overflow-y: hidden;
+}
+
+.table-control-scroll .data-table,
+.table-clases-scroll .data-table,
+.table-alumnos-scroll .data-table,
+.table-profesores-scroll .data-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+.table-control-scroll .data-table thead th,
+.table-clases-scroll .data-table thead th,
+.table-alumnos-scroll .data-table thead th,
+.table-profesores-scroll .data-table thead th {
+    top: 0;
+    z-index: 6;
+}
+
+.table-control-scroll .data-table thead,
+.table-control-scroll .data-table tbody tr,
+.table-clases-scroll .data-table thead,
+.table-clases-scroll .data-table tbody tr,
+.table-alumnos-scroll .data-table thead,
+.table-alumnos-scroll .data-table tbody tr,
+.table-profesores-scroll .data-table thead,
+.table-profesores-scroll .data-table tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.table-control-scroll .data-table tbody,
+.table-clases-scroll .data-table tbody,
+.table-alumnos-scroll .data-table tbody,
+.table-profesores-scroll .data-table tbody {
+    display: block;
+    max-height: calc(85vh - 250px);
+    overflow-y: auto;
+}
+
+.table-profesores-scroll .data-table,
+.table-profesores-scroll .data-table thead,
+.table-profesores-scroll .data-table tbody tr,
+.table-profesores-scroll .data-table thead tr {
+    min-width: 1180px;
+}
+
+.table-profesores-scroll .data-table thead {
+    display: block;
+}
+
+.table-profesores-scroll .data-table thead tr,
+.table-profesores-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 70px 90px 90px 230px 300px 180px 120px 100px;
+    width: 1180px;
+    table-layout: auto;
+}
+
+.table-profesores-scroll .data-table th,
+.table-profesores-scroll .data-table td {
+    min-width: 0;
+}
+
+.table-profesores-scroll .data-table th:nth-child(-n+3),
+.table-profesores-scroll .data-table td:nth-child(-n+3) {
+    text-align: center;
+}
+
+.table-profesores-scroll .data-table th:nth-child(n+4),
+.table-profesores-scroll .data-table td:nth-child(n+4) {
+    text-align: left;
+}
+
+.table-profesores-scroll .data-table td:nth-child(5) {
+    overflow-wrap: anywhere;
+}
+
+.table-profesores-scroll .data-table td:nth-child(6) {
+    white-space: nowrap;
+}
+
+.table-alumnos-scroll .data-table,
+.table-alumnos-scroll .data-table thead,
+.table-alumnos-scroll .data-table tbody tr,
+.table-alumnos-scroll .data-table thead tr {
+    min-width: 720px;
+}
+
+.table-alumnos-scroll .data-table thead {
+    display: block;
+}
+
+.table-alumnos-scroll .data-table thead tr,
+.table-alumnos-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 80px 100px 260px 160px 120px;
+    width: 720px;
+    table-layout: auto;
+}
+
+.table-alumnos-scroll .data-table th,
+.table-alumnos-scroll .data-table td {
+    min-width: 0;
+}
+
+.table-alumnos-scroll .data-table th:nth-child(-n+2),
+.table-alumnos-scroll .data-table td:nth-child(-n+2) {
+    text-align: center;
+}
+
+.table-alumnos-scroll .data-table th:nth-child(n+3),
+.table-alumnos-scroll .data-table td:nth-child(n+3) {
+    text-align: left;
+}
+
+.table-control-scroll .data-table,
+.table-control-scroll .data-table thead,
+.table-control-scroll .data-table tbody tr,
+.table-control-scroll .data-table thead tr {
+    min-width: 1620px;
+    width: 1620px;
+}
+
+.table-control-scroll .data-table thead {
+    display: block;
+}
+
+.table-control-scroll .data-table thead tr,
+.table-control-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 110px 90px 120px 260px 90px 300px 90px 190px 220px 130px 20px;
+    width: 1620px;
+    table-layout: auto;
+}
+
+.table-control-scroll .data-table tbody {
+    width: 1620px;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+}
+
+.table-control-scroll .data-table th,
+.table-control-scroll .data-table td {
+    min-width: 0;
+}
+
+.table-control-scroll .data-table th:nth-child(2),
+.table-control-scroll .data-table td:nth-child(2),
+.table-control-scroll .data-table th:nth-child(3),
+.table-control-scroll .data-table td:nth-child(3),
+.table-control-scroll .data-table th:nth-child(5),
+.table-control-scroll .data-table td:nth-child(5),
+.table-control-scroll .data-table th:nth-child(7),
+.table-control-scroll .data-table td:nth-child(7),
+.table-control-scroll .data-table th:nth-child(10),
+.table-control-scroll .data-table td:nth-child(10) {
+    text-align: center;
+}
+
+.table-control-scroll .data-table th:nth-child(1),
+.table-control-scroll .data-table td:nth-child(1),
+.table-control-scroll .data-table th:nth-child(4),
+.table-control-scroll .data-table td:nth-child(4),
+.table-control-scroll .data-table th:nth-child(6),
+.table-control-scroll .data-table td:nth-child(6),
+.table-control-scroll .data-table th:nth-child(8),
+.table-control-scroll .data-table td:nth-child(8),
+.table-control-scroll .data-table th:nth-child(9),
+.table-control-scroll .data-table td:nth-child(9) {
+    text-align: left;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+}
+
+.data-table th, .data-table td {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.8rem;
+    vertical-align: middle;
+}
+
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f8fafc;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table td {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* AVATARES CIRCULARES PARA TABLAS DE ALUMNOS Y PROFESORES */
+.tabla-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    display: inline-block;
+}
+
+.text-bold { font-weight: 600; color: var(--text-primary); }
+.badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+.loading { padding: 40px; text-align: center; color: var(--text-muted); font-style: italic; }
+
+/* =========================================================================
+   5. MEDIA QUERIES (Adaptación para Escritorio / Tablets)
+   ========================================================================= */
+@media (min-width: 768px) {
+    .menu-toggle-btn { display: none; }
+    
+    .app-logo { font-size: 1.3rem; }
+
+    .app-aside {
+        position: relative;
+        left: 0;
+        width: 260px;
+    }
+
+    .aside-overlay { display: none !important; }
+    .app-main { padding: 40px; }
+}
+
+/* DASHBOARD GRID Y CARDS */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+/* NOTIFICACIONES DE CRUD */
+.notification {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%) translateY(14px);
+    padding: 14px 18px;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 999;
+}
+
+.notification.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.notification.success {
+    background: #16a34a;
+}
+
+.notification.error {
+    background: #dc2626;
+}
+
+.kpi-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.kpi-card h3 {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-card .kpi-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.chart-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.chart-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.05rem;
+    color: #cbd5e1;
+}
+
+/* BOTONES PRIMARIOS Y PELIGRO */
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-danger {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn-tertiary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px dashed var(--border-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+/* MODAL SIMPLE */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+}
+
+.modal-content {
+    background: #fff;
+    width: 90%;
+    max-width: 640px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.2);
+    overflow: hidden;
+}
+
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid var(--border-color); }
+.modal-body { padding:16px; }
+.modal-footer { display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border-color); }
+.modal-close { background:transparent; border:none; font-size:1.1rem; cursor:pointer; }
+
+.form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.form-row label { font-size:0.85rem; color:var(--text-muted); }
+.form-row input, .form-row textarea { padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:0.95rem; }
+

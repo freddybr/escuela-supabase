@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Académico - Escuela Digital</title>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- CABECERA DE LA APLICACIÓN -->
+    <header class="app-header">
+        <button id="menu-toggle" class="menu-toggle-btn" aria-label="Abrir menú">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <div class="app-logo">🏫 Escuela Digital</div>
+        
+        <div class="user-control">
+            <div class="user-avatar-container">
+                <img id="user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=Usuario" alt="Avatar" class="user-avatar">
+            </div>
+            <button id="btn-logout" class="btn-logout" title="Cerrar Sesión">Salir</button>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <!-- ASIDE CON MENU -->
+        <aside id="app-aside" class="app-aside">
+            <div class="aside-header">
+                <h3>Menú Académico</h3>
+            </div>
+            <nav class="menu-nav">
+                <h4 class="menu-group-title">Contenido</h4>
+                <button id="nav-dashboard" class="menu-btn active">📊 Dashboard</button>
+                <button id="nav-materias" class="menu-btn active">📚 Materias</button>
+                <button id="nav-programas" class="menu-btn">📐 Programas</button>
+                <button id="nav-clases" class="menu-btn">📐 Clases</button>
+                <h4 class="menu-group-title">Seguimiento</h4>
+                <button id="nav-periodos" class="menu-btn">📐 Períodos</button>
+                <button id="nav-asignaciones" class="menu-btn">📐 Asignaciones</button>
+                <button id="nav-control" class="menu-btn">📐 Ejecucion</button>
+                <button id="nav-asistencias" class="menu-btn">📐 Asistencias</button>
+                <h4 class="menu-group-title">Comunidad</h4>
+                <button id="nav-grados" class="menu-btn">📐 Grados</button>
+                <button id="nav-alumnos" class="menu-btn">📐 Alumnos</button>
+                <button id="nav-profesores" class="menu-btn">📐 Profesores</button>
+                <h4 class="menu-group-title">Ajustes</h4>
+                <button id="nav-config" class="menu-btn">⚙️ Configuración</button>
+                <button id="nav-perfil" class="menu-btn">👤 Perfil</button>
+            </nav>
+        </aside>
+
+        <div id="aside-overlay" class="aside-overlay"></div>
+
+        <!-- CONTENEDOR MAIN -->
+        <main id="main-content" class="app-main">
+            <div class="loading">Cargando aplicación...</div>
+        </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

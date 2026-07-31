@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escuela Digital - Bienvenid@</title>
+    <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">🏫 Escuela Digital</div>
+        <button id="btn-show-login" class="btn-primary">Iniciar Sesión</button>
+    </header>
+
+    <main class="hero">
+        <h1>Bienvenido al Sistema de Gestión Escolar</h1>
+        <p>Accede al control de materias, grados y planificación académica en un solo lugar.</p>
+    </main>
+
+    <!-- MODAL DE INICIO DE SESIÓN -->
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal" class="close">&times;</span>
+            <h2>Ingresar al Sistema</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Correo electrónico" required>
+                <input type="password" id="login-password" placeholder="Contraseña" required>
+                <button type="submit" class="btn-submit">Entrar</button>
+            </form>
+            <p id="login-error" class="error-msg hidden"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/config.js';
+
+        const modal = document.getElementById('login-modal');
+        const btnShowLogin = document.getElementById('btn-show-login');
+        const btnCloseModal = document.getElementById('close-modal');
+        const loginForm = document.getElementById('login-form');
+        const errorMsg = document.getElementById('login-error');
+
+        btnShowLogin.addEventListener('click', () => modal.classList.remove('hidden'));
+        btnCloseModal.addEventListener('click', () => modal.classList.add('hidden'));
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.classList.remove('hidden');
+            } else {
+                window.location.href = 'app.html';
+            }
+        });
+    </script>
+</body>
+</html>
