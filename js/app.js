@@ -318,47 +318,218 @@ navDashboard.addEventListener('click', () => {
 
 
 // CARGA DE TABLAS DINÁMICAS DESDE SUPABASE EN TABLAS HTML
-// 1. Renderizar Tabla de Años
+// Renderizar Tabla de Periodos (Año Escolar) - CRUD completo en tabla 'anio'
 async function cargarVistaPeriodos() {
-    mainContent.innerHTML = '<div class="loading">Consultando años...</div>';
+    mainContent.innerHTML = '<div class="loading">Consultando periodos...</div>';
 
-    const { data: anio, error } = await supabase.from('anio').select('*');
+    // Obtener los periodos ordenados por ID
+    const { data: periodos, error } = await supabase
+        .from('anio')
+        .select('*')
+        .order('id', { ascending: true });
 
     if (error) {
-        mainContent.innerHTML = `<p class="error-msg">❌ Error: ${error.message}</p>`;
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar periodos: ${error.message}</p>`;
         return;
     }
 
+    const listaPeriodos = periodos || [];
+
     let htmlTemplate = `
-        <div class="header-seccion">
-        <h2>Períodos</h2>
-            <p>Años académicos por período.</p>
+        <div class="header-seccion" style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <h2>Períodos</h2>
+                <p>Años académicos por período.</p>
+            </div>
+            <div>
+                <button id="btn-nuevo-periodo" class="btn-primary">➕ Añadir</button>
+            </div>
         </div>
+
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table" id="tabla-periodos">
                 <thead>
                     <tr>
-                        <th>Id</th>
+                        <th>ID</th>
                         <th>Período</th>
-                        <th>Inicio</th>
-                        <th>Fin</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${anio.map(a => `
-                    <tr>
-                        <td><strong># ${a.id}</strong></td>
-                        <td class="text-bold">${a.anio_periodo}</td>
-                        <td>${a.anio_inicio || 'Sin inicio'}</td>
-                        <td>${a.anio_fin || 'Sin fin'}</td>
-                    </tr>
+                    ${listaPeriodos.map(a => `
+                        <tr data-id="${a.id}" class="fila-periodo" style="cursor:pointer;">
+                            <td><strong># ${a.id}</strong></td>
+                            <td class="text-bold">${a.anio_periodo}</td>
+                            <td><span class="text-light">${a.anio_inicio || 'Sin inicio'}</span></td>
+                            <td><span class="text-light">${a.anio_fin || 'Sin fin'}</span></td>
+                        </tr>
                     `).join('')}
                 </tbody>
             </table>
         </div>
+
+        <!-- Modal Periodos -->
+        <div id="modal-periodo" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-periodo-title">Período</h3>
+                    <button id="modal-periodo-close" class="modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-periodo">
+                        <input type="hidden" id="periodo-id">
+                        
+                        <div class="form-row">
+                            <label>Nombre del Período (Ej: 2025-2026)</label>
+                            <input id="periodo-nombre" type="text" placeholder="Ej. 2025-2026" required>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Fecha de Inicio</label>
+                            <input id="periodo-inicio" type="date" required>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Fecha de Fin</label>
+                            <input id="periodo-fin" type="date" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-cancelar-periodo" class="btn-secondary">Cancelar</button>
+                    <button id="btn-limpiar-periodo" class="btn-tertiary">Limpiar</button>
+                    <button id="btn-borrar-periodo" class="btn-danger" style="display:none;">Eliminar</button>
+                    <button id="btn-guardar-periodo" class="btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
     `;
+
     mainContent.innerHTML = htmlTemplate;
+
+    // --- EVENTOS DE INTERFAZ ---
+
+    // Abrir modal para nuevo período
+    document.getElementById('btn-nuevo-periodo').addEventListener('click', () => abrirModalPeriodo());
+
+    // Abrir modal para editar al hacer clic en una fila
+    document.querySelectorAll('.fila-periodo').forEach(row => {
+        row.addEventListener('click', async () => {
+            const id = row.getAttribute('data-id');
+            const { data: item } = await supabase.from('anio').select('*').eq('id', id).maybeSingle();
+            if (item) abrirModalPeriodo(item);
+        });
+    });
+
+    // Controladores del Modal
+    document.getElementById('modal-periodo-close').addEventListener('click', () => cerrarModalPeriodo());
+    document.getElementById('btn-guardar-periodo').addEventListener('click', guardarPeriodo);
+    document.getElementById('btn-borrar-periodo').addEventListener('click', borrarPeriodo);
+    document.getElementById('btn-cancelar-periodo').addEventListener('click', (e) => { e.preventDefault(); cerrarModalPeriodo(); });
+    document.getElementById('btn-limpiar-periodo').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioPeriodo(); });
 }
+
+    // Abrir el Modal (Creación / Edición)
+    function abrirModalPeriodo(periodo = null) {
+        const modal = document.getElementById('modal-periodo');
+        const titulo = document.getElementById('modal-periodo-title');
+        const inputId = document.getElementById('periodo-id');
+        const inpNombre = document.getElementById('periodo-nombre');
+        const inpInicio = document.getElementById('periodo-inicio');
+        const inpFin = document.getElementById('periodo-fin');
+        const btnBorrar = document.getElementById('btn-borrar-periodo');
+
+        if (periodo) {
+            titulo.textContent = `Período #${periodo.id}`;
+            inputId.value = periodo.id;
+            inpNombre.value = periodo.anio_periodo || '';
+            inpInicio.value = periodo.anio_inicio || '';
+            inpFin.value = periodo.anio_fin || '';
+            btnBorrar.style.display = 'inline-block';
+        } else {
+            titulo.textContent = 'Nuevo Período';
+            inputId.value = '';
+            inpNombre.value = '';
+            inpInicio.value = '';
+            inpFin.value = '';
+            btnBorrar.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    // Cerrar el Modal
+    function cerrarModalPeriodo() {
+        const modal = document.getElementById('modal-periodo');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Guardar registro (INSERT / UPDATE)
+    async function guardarPeriodo(e) {
+        e.preventDefault();
+
+        const id = document.getElementById('periodo-id').value;
+        const anio_periodo = document.getElementById('periodo-nombre').value.trim();
+        const anio_inicio = document.getElementById('periodo-inicio').value;
+        const anio_fin = document.getElementById('periodo-fin').value;
+
+        if (!anio_periodo) { mostrarMensaje('error', 'El nombre del período es requerido'); return; }
+        if (!anio_inicio) { mostrarMensaje('error', 'La fecha de inicio es requerida'); return; }
+        if (!anio_fin) { mostrarMensaje('error', 'La fecha de fin es requerida'); return; }
+
+        if (new Date(anio_inicio) > new Date(anio_fin)) {
+            mostrarMensaje('error', 'La fecha de inicio no puede ser posterior a la fecha de fin');
+            return;
+        }
+
+        const payload = {
+            anio_periodo: anio_periodo,
+            anio_inicio: anio_inicio,
+            anio_fin: anio_fin
+        };
+
+        if (id) {
+            const { error } = await supabase.from('anio').update(payload).eq('id', id);
+            if (error) { mostrarMensaje('error', 'Error al actualizar el período: ' + error.message); return; }
+            mostrarMensaje('success', 'Período actualizado con éxito');
+        } else {
+            const { error } = await supabase.from('anio').insert(payload);
+            if (error) { mostrarMensaje('error', 'Error al crear el período: ' + error.message); return; }
+            mostrarMensaje('success', 'Período creado con éxito');
+        }
+
+        cerrarModalPeriodo();
+        cargarVistaPeriodos();
+    }
+
+    // Eliminar registro (DELETE)
+    async function borrarPeriodo(e) {
+        e.preventDefault();
+        const id = document.getElementById('periodo-id').value;
+        if (!id) return;
+
+        if (!confirm(`¿Estás seguro de eliminar el período #${id}? Esta acción afectará los registros vinculados.`)) return;
+
+        const { error } = await supabase.from('anio').delete().eq('id', id);
+        if (error) { 
+            mostrarMensaje('error', 'Error al eliminar el período: ' + error.message); 
+            return; 
+        }
+
+        mostrarMensaje('success', 'Período eliminado correctamente');
+        cerrarModalPeriodo();
+        cargarVistaPeriodos();
+    }
+
+    // Limpiar inputs del formulario
+    function limpiarFormularioPeriodo() {
+        document.getElementById('periodo-id').value = '';
+        document.getElementById('periodo-nombre').value = '';
+        document.getElementById('periodo-inicio').value = '';
+        document.getElementById('periodo-fin').value = '';
+        document.getElementById('periodo-nombre').focus();
+    }
 
 // 2. Renderizar Tabla de Materias
 async function cargarVistaMaterias() {
@@ -1088,262 +1259,725 @@ async function cargarVistaAlumnos() {
    FUNCIONES DE SOPORTE CRUD PARA ALUMNOS
    ========================================================================= */
 
-let editandoId = null; // Control para saber si se está creando o actualizando
+    let editandoId = null; // Control para saber si se está creando o actualizando
 
-function abrirModalAlumno(alumno = null) {
-    const modal = document.getElementById('modal-alumno');
-    const titulo = document.getElementById('modal-alumno-title');
-    const inpNombre = document.getElementById('alumno-nombre');
-    const selGrado = document.getElementById('alumno-grado');
-    const inpEmail = document.getElementById('alumno-email');
-    const inpBirthday = document.getElementById('alumno-birthday');
-    const selSexo = document.getElementById('alumno-sexo');
-    const inpRepresentante = document.getElementById('alumno-representante');
-    const inpTelf = document.getElementById('alumno-telf');
-    const inpDireccion = document.getElementById('alumno-direccion');
-    const btnBorrar = document.getElementById('btn-borrar-alumno');
+    function abrirModalAlumno(alumno = null) {
+        const modal = document.getElementById('modal-alumno');
+        const titulo = document.getElementById('modal-alumno-title');
+        const inpNombre = document.getElementById('alumno-nombre');
+        const selGrado = document.getElementById('alumno-grado');
+        const inpEmail = document.getElementById('alumno-email');
+        const inpBirthday = document.getElementById('alumno-birthday');
+        const selSexo = document.getElementById('alumno-sexo');
+        const inpRepresentante = document.getElementById('alumno-representante');
+        const inpTelf = document.getElementById('alumno-telf');
+        const inpDireccion = document.getElementById('alumno-direccion');
+        const btnBorrar = document.getElementById('btn-borrar-alumno');
 
-    if (alumno) {
-        editandoId = alumno.id;
-        titulo.textContent = `Alumno #${alumno.id}`;
-        inpNombre.value = alumno.alumno_nombre || '';
-        selGrado.value = alumno.grado_id || '';
-        inpEmail.value = alumno.alumno_email || '';
-        inpBirthday.value = alumno.alumno_birthday || '';
-        selSexo.value = alumno.alumno_sexo || '';
-        inpRepresentante.value = alumno.alumno_representante || '';
-        inpTelf.value = alumno.alumno_telf || '';
-        inpDireccion.value = alumno.alumno_direccion || '';
+        if (alumno) {
+            editandoId = alumno.id;
+            titulo.textContent = `Alumno #${alumno.id}`;
+            inpNombre.value = alumno.alumno_nombre || '';
+            selGrado.value = alumno.grado_id || '';
+            inpEmail.value = alumno.alumno_email || '';
+            inpBirthday.value = alumno.alumno_birthday || '';
+            selSexo.value = alumno.alumno_sexo || '';
+            inpRepresentante.value = alumno.alumno_representante || '';
+            inpTelf.value = alumno.alumno_telf || '';
+            inpDireccion.value = alumno.alumno_direccion || '';
+            btnBorrar.style.display = '';
+        } else {
+            editandoId = null;
+            titulo.textContent = 'Nuevo Alumno';
+            inpNombre.value = '';
+            selGrado.value = '';
+            inpEmail.value = '';
+            inpBirthday.value = '';
+            selSexo.value = '';
+            inpRepresentante.value = '';
+            inpTelf.value = '';
+            inpDireccion.value = '';
+            btnBorrar.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function cerrarModalAlumno() {
+        const modal = document.getElementById('modal-alumno');
+        modal.style.display = 'none';
+    }
+
+    async function guardarAlumno(e) {
+        e.preventDefault();
+        const nombre = document.getElementById('alumno-nombre').value.trim();
+        const grado_id = document.getElementById('alumno-grado').value || null;
+        const email = document.getElementById('alumno-email').value.trim() || null;
+        const birthday = document.getElementById('alumno-birthday').value || null;
+        const sexo = document.getElementById('alumno-sexo').value || null;
+        const representante = document.getElementById('alumno-representante').value.trim() || null;
+        const telf = document.getElementById('alumno-telf').value.trim() || null;
+        const direccion = document.getElementById('alumno-direccion').value.trim() || null;
+
+        if (!nombre) { mostrarMensaje('error', 'El nombre del alumno es obligatorio'); return; }
+
+        const payload = {
+            alumno_nombre: nombre,
+            grado_id: grado_id ? parseInt(grado_id, 10) : null,
+            alumno_email: email,
+            alumno_birthday: birthday,
+            alumno_sexo: sexo,
+            alumno_representante: representante,
+            alumno_telf: telf,
+            alumno_direccion: direccion
+        };
+
+        if (editandoId) {
+            // Actualizar alumno existente
+            const { error } = await supabase
+                .from('alumnos')
+                .update(payload)
+                .eq('id', editandoId);
+
+            if (error) { mostrarMensaje('error', 'Error al actualizar alumno: ' + error.message); return; }
+            mostrarMensaje('success', 'Alumno actualizado correctamente');
+        } else {
+            // Consultar el mayor ID actual para asignar el siguiente
+            const { data: ultimoAlumno, error: errorMax } = await supabase
+                .from('alumnos')
+                .select('id')
+                .order('id', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (errorMax) {
+                mostrarMensaje('error', 'Error al obtener el correlativo de ID: ' + errorMax.message);
+                return;
+            }
+
+            const siguienteId = ultimoAlumno ? Number(ultimoAlumno.id) + 1 : 1;
+            payload.id = siguienteId;
+
+            // Insertar nuevo alumno con el ID auto-calculado
+            const { error } = await supabase
+                .from('alumnos')
+                .insert(payload);
+
+            if (error) { mostrarMensaje('error', 'Error al crear alumno: ' + error.message); return; }
+            mostrarMensaje('success', `Alumno #${siguienteId} registrado correctamente`);
+        }
+
+        cerrarModalAlumno();
+        cargarVistaAlumnos();
+    }
+
+    async function borrarAlumno(e) {
+        e.preventDefault();
+        if (!editandoId) return;
+
+        if (!confirm(`¿Deseas eliminar al alumno #${editandoId}? Esta acción no se puede deshacer.`)) return;
+
+        const { error } = await supabase
+            .from('alumnos')
+            .delete()
+            .eq('id', editandoId);
+
+        if (error) { mostrarMensaje('error', 'Error al eliminar alumno: ' + error.message); return; }
+        mostrarMensaje('success', 'Alumno eliminado correctamente');
+
+        cerrarModalAlumno();
+        cargarVistaAlumnos();
+    }
+
+    function limpiarFormularioAlumno() {
+        document.getElementById('alumno-nombre').value = '';
+        document.getElementById('alumno-grado').value = '';
+        document.getElementById('alumno-email').value = '';
+        document.getElementById('alumno-birthday').value = '';
+        document.getElementById('alumno-sexo').value = '';
+        document.getElementById('alumno-representante').value = '';
+        document.getElementById('alumno-telf').value = '';
+        document.getElementById('alumno-direccion').value = '';
+        document.getElementById('alumno-nombre').focus();
+    }
+
+// Renderizar Tabla e Interfaz CRUD para Profesores
+async function cargarVistaProfesores() {
+    mainContent.innerHTML = '<div class="loading">Consultando Profesores...</div>';
+
+    // Obtener profesores y grados en paralelo
+    const [resProfesores, resGrados] = await Promise.all([
+        supabase.from('profesores').select('*'),
+        supabase.from('grados').select('*')
+    ]);
+
+    if (resProfesores.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error: ${resProfesores.error.message}</p>`;
+        return;
+    }
+
+    if (resGrados.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error (grados): ${resGrados.error.message}</p>`;
+        return;
+    }
+
+    const profesores = resProfesores.data || [];
+    const grados = resGrados.data || [];
+
+    // Mapeo rápido de Grados por ID
+    const gradosById = new Map(grados.map(g => [String(g.id), g.grado_nombre]));
+
+    // Opciones de Grados para el selector
+    const opcionesGrados = grados.map(g => `<option value="${g.id}">${g.grado_nombre}</option>`).join('');
+
+    // Ordenar profesores por ID de menor a mayor
+    profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
+
+    let htmlTemplate = `
+        <div class="header-seccion" style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <h2>Profesores</h2>
+                <p>Información general y gestión de profesores.</p>
+            </div>
+            <div>
+                <button id="btn-nuevo-profesor" class="btn-primary">➕ Añadir</button>
+            </div>
+        </div>
+
+        <div class="table-responsive table-profesores-scroll">
+            <table class="data-table" id="tabla-profesores">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th style="width: 50px; text-align: center;">Foto</th>
+                        <th>Grado</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Estatus</th>
+                        <th>Rol</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${profesores.map(p => {
+                        const fotoUrl = p.profe_imagen_url && p.profe_imagen_url.trim() !== ''
+                            ? p.profe_imagen_url
+                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.profe_nombre)}&backgroundColor=4f46e5`;
+
+                        const nombreGrado = gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado');
+
+                        return `
+                        <tr data-id="${p.id}" class="fila-profesor" style="cursor: pointer;">
+                            <td><strong># ${p.id}</strong></td>
+                            <td style="text-align: center;">
+                                <img src="${fotoUrl}" alt="${p.profe_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
+                            </td>
+                            <td><span class="badge" style="background-color: #e0e7ff; color: #3730a3;">${nombreGrado}</span></td>
+                            <td class="text-bold">${p.profe_nombre}</td>
+                            <td><span class="text-light">${p.profe_email || '-'}</span></td>
+                            <td><span class="text-light">${p.profe_telf || '-'}</span></td>
+                            <td>
+                                <span class="badge" style="background-color: ${p.profe_estatus === 'Activo' ? '#c7f9cc' : '#ffccd5'}; color: #000;">
+                                    ${p.profe_estatus || 'N/A'}
+                                </span>
+                            </td>
+                            <td><span class="text-light">${p.profe_rol || '-'}</span></td>
+                        </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal Profesores -->
+        <div id="modal-profesor" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-profesor-title">Profesor</h3>
+                    <button id="modal-profesor-close" class="modal-close">✕</button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <form id="form-profesor">
+                        <div class="form-row">
+                            <label>Nombre Completo *</label>
+                            <input id="profe-nombre" type="text" required placeholder="Nombre del profesor">
+                        </div>
+                        <div class="form-row">
+                            <label>Grado Asignado</label>
+                            <select id="profe-grado">
+                                <option value="">-- Seleccionar Grado --</option>
+                                ${opcionesGrados}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Correo Electrónico</label>
+                            <input id="profe-email" type="email" placeholder="profesor@ejemplo.com">
+                        </div>
+                        <div class="form-row">
+                            <label>Teléfono</label>
+                            <input id="profe-telf" type="tel" placeholder="Ej: +58 412 0000000">
+                        </div>
+                        <div class="form-row">
+                            <label>Estatus</label>
+                            <select id="profe-estatus">
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Rol</label>
+                            <input id="profe-rol" type="text" placeholder="Ej: Titular, Auxiliar, Coordinador">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-cancelar-profesor" class="btn-secondary">Cancelar</button>
+                    <button id="btn-limpiar-profesor" class="btn-tertiary">Limpiar</button>
+                    <button id="btn-borrar-profesor" class="btn-danger" style="display:none;">Eliminar</button>
+                    <button id="btn-guardar-profesor" class="btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    mainContent.innerHTML = htmlTemplate;
+
+    // Asignación de Eventos
+    document.getElementById('btn-nuevo-profesor').addEventListener('click', () => abrirModalProfesor());
+
+    // Evento de clic en filas para editar
+    document.querySelectorAll('.fila-profesor').forEach(row => {
+        row.addEventListener('click', async () => {
+            const id = row.getAttribute('data-id');
+            const { data: profe } = await supabase.from('profesores').select('*').eq('id', id).maybeSingle();
+            if (profe) abrirModalProfesor(profe);
+        });
+    });
+
+    // Controladores del Modal
+    document.getElementById('modal-profesor-close').addEventListener('click', () => cerrarModalProfesor());
+    document.getElementById('btn-guardar-profesor').addEventListener('click', guardarProfesor);
+    document.getElementById('btn-borrar-profesor').addEventListener('click', borrarProfesor);
+    document.getElementById('btn-cancelar-profesor').addEventListener('click', (e) => { e.preventDefault(); cerrarModalProfesor(); });
+    document.getElementById('btn-limpiar-profesor').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioProfesor(); });
+}
+
+/* =========================================================================
+   FUNCIONES DE SOPORTE CRUD PARA PROFESORES
+   ========================================================================= */
+
+let editandoProfeId = null; // Control de edicion
+
+function abrirModalProfesor(profe = null) {
+    const modal = document.getElementById('modal-profesor');
+    const titulo = document.getElementById('modal-profesor-title');
+    const inpNombre = document.getElementById('profe-nombre');
+    const selGrado = document.getElementById('profe-grado');
+    const inpEmail = document.getElementById('profe-email');
+    const inpTelf = document.getElementById('profe-telf');
+    const selEstatus = document.getElementById('profe-estatus');
+    const inpRol = document.getElementById('profe-rol');
+    const btnBorrar = document.getElementById('btn-borrar-profesor');
+
+    if (profe) {
+        editandoProfeId = profe.id;
+        titulo.textContent = `Profesor #${profe.id}`;
+        inpNombre.value = profe.profe_nombre || '';
+        selGrado.value = profe.grado_id || '';
+        inpEmail.value = profe.profe_email || '';
+        inpTelf.value = profe.profe_telf || '';
+        selEstatus.value = profe.profe_estatus || 'Activo';
+        inpRol.value = profe.profe_rol || '';
         btnBorrar.style.display = '';
     } else {
-        editandoId = null;
-        titulo.textContent = 'Nuevo Alumno';
+        editandoProfeId = null;
+        titulo.textContent = 'Nuevo Profesor';
         inpNombre.value = '';
         selGrado.value = '';
         inpEmail.value = '';
-        inpBirthday.value = '';
-        selSexo.value = '';
-        inpRepresentante.value = '';
         inpTelf.value = '';
-        inpDireccion.value = '';
+        selEstatus.value = 'Activo';
+        inpRol.value = '';
         btnBorrar.style.display = 'none';
     }
 
     modal.style.display = 'flex';
 }
 
-function cerrarModalAlumno() {
-    const modal = document.getElementById('modal-alumno');
+function cerrarModalProfesor() {
+    const modal = document.getElementById('modal-profesor');
     modal.style.display = 'none';
 }
 
-async function guardarAlumno(e) {
+async function guardarProfesor(e) {
     e.preventDefault();
-    const nombre = document.getElementById('alumno-nombre').value.trim();
-    const grado_id = document.getElementById('alumno-grado').value || null;
-    const email = document.getElementById('alumno-email').value.trim() || null;
-    const birthday = document.getElementById('alumno-birthday').value || null;
-    const sexo = document.getElementById('alumno-sexo').value || null;
-    const representante = document.getElementById('alumno-representante').value.trim() || null;
-    const telf = document.getElementById('alumno-telf').value.trim() || null;
-    const direccion = document.getElementById('alumno-direccion').value.trim() || null;
+    const nombre = document.getElementById('profe-nombre').value.trim();
+    const grado_id = document.getElementById('profe-grado').value || null;
+    const email = document.getElementById('profe-email').value.trim() || null;
+    const telf = document.getElementById('profe-telf').value.trim() || null;
+    const estatus = document.getElementById('profe-estatus').value;
+    const rol = document.getElementById('profe-rol').value.trim() || null;
 
-    if (!nombre) { mostrarMensaje('error', 'El nombre del alumno es obligatorio'); return; }
+    if (!nombre) { mostrarMensaje('error', 'El nombre del profesor es obligatorio'); return; }
 
     const payload = {
-        alumno_nombre: nombre,
+        profe_nombre: nombre,
         grado_id: grado_id ? parseInt(grado_id, 10) : null,
-        alumno_email: email,
-        alumno_birthday: birthday,
-        alumno_sexo: sexo,
-        alumno_representante: representante,
-        alumno_telf: telf,
-        alumno_direccion: direccion
+        profe_email: email,
+        profe_telf: telf,
+        profe_estatus: estatus,
+        profe_rol: rol
     };
 
-    if (editandoId) {
-        // Actualizar alumno existente
+    if (editandoProfeId) {
+        // Actualizar profesor existente
         const { error } = await supabase
-            .from('alumnos')
+            .from('profesores')
             .update(payload)
-            .eq('id', editandoId);
+            .eq('id', editandoProfeId);
 
-        if (error) { mostrarMensaje('error', 'Error al actualizar alumno: ' + error.message); return; }
-        mostrarMensaje('success', 'Alumno actualizado correctamente');
+        if (error) { mostrarMensaje('error', 'Error al actualizar profesor: ' + error.message); return; }
+        mostrarMensaje('success', 'Profesor actualizado correctamente');
     } else {
-        // Consultar el mayor ID actual para asignar el siguiente
-        const { data: ultimoAlumno, error: errorMax } = await supabase
-            .from('alumnos')
+        // Obtener el ID maximo existente
+        const { data: ultimoProfe, error: errorMax } = await supabase
+            .from('profesores')
             .select('id')
             .order('id', { ascending: false })
             .limit(1)
             .maybeSingle();
 
         if (errorMax) {
-            mostrarMensaje('error', 'Error al obtener el correlativo de ID: ' + errorMax.message);
+            mostrarMensaje('error', 'Error al obtener correlativo de ID: ' + errorMax.message);
             return;
         }
 
-        const siguienteId = ultimoAlumno ? Number(ultimoAlumno.id) + 1 : 1;
+        const siguienteId = ultimoProfe ? Number(ultimoProfe.id) + 1 : 1;
         payload.id = siguienteId;
 
-        // Insertar nuevo alumno con el ID auto-calculado
+        // Insertar nuevo profesor
         const { error } = await supabase
-            .from('alumnos')
+            .from('profesores')
             .insert(payload);
 
-        if (error) { mostrarMensaje('error', 'Error al crear alumno: ' + error.message); return; }
-        mostrarMensaje('success', `Alumno #${siguienteId} registrado correctamente`);
+        if (error) { mostrarMensaje('error', 'Error al crear profesor: ' + error.message); return; }
+        mostrarMensaje('success', `Profesor #${siguienteId} registrado correctamente`);
     }
 
-    cerrarModalAlumno();
-    cargarVistaAlumnos();
+    cerrarModalProfesor();
+    cargarVistaProfesores();
 }
 
-async function borrarAlumno(e) {
+async function borrarProfesor(e) {
     e.preventDefault();
-    if (!editandoId) return;
+    if (!editandoProfeId) return;
 
-    if (!confirm(`¿Deseas eliminar al alumno #${editandoId}? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Deseas eliminar al profesor #${editandoProfeId}? Esta acción no se puede deshacer.`)) return;
 
     const { error } = await supabase
-        .from('alumnos')
+        .from('profesores')
         .delete()
-        .eq('id', editandoId);
+        .eq('id', editandoProfeId);
 
-    if (error) { mostrarMensaje('error', 'Error al eliminar alumno: ' + error.message); return; }
-    mostrarMensaje('success', 'Alumno eliminado correctamente');
+    if (error) { mostrarMensaje('error', 'Error al eliminar profesor: ' + error.message); return; }
+    mostrarMensaje('success', 'Profesor eliminado correctamente');
 
-    cerrarModalAlumno();
-    cargarVistaAlumnos();
+    cerrarModalProfesor();
+    cargarVistaProfesores();
 }
 
-function limpiarFormularioAlumno() {
-    document.getElementById('alumno-nombre').value = '';
-    document.getElementById('alumno-grado').value = '';
-    document.getElementById('alumno-email').value = '';
-    document.getElementById('alumno-birthday').value = '';
-    document.getElementById('alumno-sexo').value = '';
-    document.getElementById('alumno-representante').value = '';
-    document.getElementById('alumno-telf').value = '';
-    document.getElementById('alumno-direccion').value = '';
-    document.getElementById('alumno-nombre').focus();
+function limpiarFormularioProfesor() {
+    document.getElementById('profe-nombre').value = '';
+    document.getElementById('profe-grado').value = '';
+    document.getElementById('profe-email').value = '';
+    document.getElementById('profe-telf').value = '';
+    document.getElementById('profe-estatus').value = 'Activo';
+    document.getElementById('profe-rol').value = '';
+    document.getElementById('profe-nombre').focus();
 }
 
-// 7. Renderizar Tabla Profesores (INCLUYE FOTO / AVATAR)
-async function cargarVistaProfesores() {
-    mainContent.innerHTML = '<div class="loading">Consultando Profesores...</div>';
-
-    const { data: profesores, error } = await supabase.from('profesores').select('*');
-
-    if (error) {
-        mainContent.innerHTML = `<p class="error-msg">❌ Error: ${error.message}</p>`;
-        return;
-    }
-
-    // Ordenar profesores de menor a mayor por su ID
-    profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
-
-    let htmlTemplate = `
- <div class="header-seccion">
- <h2>Profesores</h2>
- <p>Información general de los profesores.</p>
- </div>
- <div class="table-responsive table-profesores-scroll">
- <table class="data-table">
- <thead>
- <tr>
- <th>ID</th>
- <th style="width: 50px; text-align: center;">Foto</th>
- <th>Grado</th>
- <th>Nombre</th>
- <th>Email</th>
- <th>Telefono</th>
- <th>Estatus</th>
- <th>Rol</th> 
-</tr>
- </thead>
- <tbody>
- ${profesores.map(p => {
-     const fotoUrl = p.profe_imagen_url && p.profe_imagen_url.trim() !== ''
-         ? p.profe_imagen_url
-         : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.profe_nombre)}&backgroundColor=4f46e5`;
-
-     return `
-     <tr>
-     <td><strong># ${p.id}</strong></td>
-     <td style="text-align: center;">
-         <img src="${fotoUrl}" alt="${p.profe_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
-     </td>
-     <td class="text-bold">${p.grado_id || '-'}</td>
-     <td><span class="text-light">${p.profe_nombre}</span></td>
-     <td><span class="text-light">${p.profe_email || '-'}</span></td>
-     <td><span class="text-light">${p.profe_telf || '-'}</span></td>
-     <td>
-     <span class="badge" style="background-color: ${p.profe_estatus === 'Activo' ? '#c7f9cc' : '#ffccd5'}; color: #000;">
-     ${p.profe_estatus || 'N/A'}
-     </span>
-    </td>
-     <td><span class="text-light">${p.profe_rol || '-'}</span></td>
-     </tr>
-     `;
- }).join('')}
- </tbody>
- </table>
- </div>
- `;
-    mainContent.innerHTML = htmlTemplate;
-}
-
-// 8. Renderizar Tabla Asignaciones
+// 8. Renderizar Tabla Asignaciones (Lectura de vista_asignaciones_detalles / Escritura en asignaciones)
 async function cargarVistaAsignaciones() {
     mainContent.innerHTML = '<div class="loading">Consultando Asignaciones...</div>';
 
-    const { data: vista_asignaciones_detalles, error } = await supabase.from('vista_asignaciones_detalles').select('*');
+    // Obtener en paralelo los datos de la vista y los catálogos para los selects del Modal
+    const [resVista, resProgramas, resGrados, resAnio] = await Promise.all([
+        supabase.from('vista_asignaciones_detalles').select('*'),
+        supabase.from('programas').select('*').eq('programa_estatus', 'Disponible'), // Solo estatus 'Disponible'
+        supabase.from('grados').select('*'),
+        supabase.from('anio').select('*')
+    ]);
 
-    if (error) {
-        mainContent.innerHTML = `<p class="error-msg">❌ Error: ${error.message}</p>`;
+    if (resVista.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resVista.error.message}</p>`;
         return;
     }
 
+    if (resProgramas.error) {
+        mostrarMensaje('error', 'Error al cargar programas disponibles: ' + resProgramas.error.message);
+    }
+    if (resGrados.error) {
+        mostrarMensaje('error', 'Error al cargar grados: ' + resGrados.error.message);
+    }
+    if (resAnio.error) {
+        mostrarMensaje('error', 'Error al cargar períodos (año): ' + resAnio.error.message);
+    }
+
+    const vistaAsignaciones = resVista.data || [];
+    const programasDisponibles = resProgramas.data || [];
+    const grados = resGrados.data || [];
+    const anios = resAnio.data || [];
+
+    // Construcción de opciones para los select del Modal
+    const opcionesProgramas = programasDisponibles.map(p => 
+        `<option value="${p.id}">#${p.id} - ${p.programa_tema}</option>`
+    ).join('');
+
+    const opcionesGrados = grados.map(g => 
+        `<option value="${g.id}">${g.grado_nombre || g.grado_numero}</option>`
+    ).join('');
+
+    const opcionesAnios = anios.map(a => 
+        `<option value="${a.id}">${a.anio_periodo}</option>`
+    ).join('');
+
     let htmlTemplate = `
- <div class="header-seccion">
- <h2>Asignaciones</h2>
- <p>Distribución de los programas entre los grados.</p>
- </div>
- <div class="table-responsive">
- <table class="data-table">
- <thead>
- <tr>
- <th>ID</th>
- <th># Prog</th>
- <th>Programa</th>
- <th>Grado</th>
- <th>Estatus</th>
- <th>Periodo</th>
- <th>Materia</th>
- <th># Clases</th>
- </tr>
- </thead>
- <tbody>
- ${vista_asignaciones_detalles.map(n => `
- <tr>
- <td><strong># ${n.asigna_id}</strong></td>
- <td class="text-bold">${n.programa_id}</td>
- <td class="text-bold">${n.programa_tema}</td>
- <td><span class="text-light">${n.grado_numero}</span></td>
- <td><span class="text-light">${n.asigna_estatus}</span></td>
- <td><span class="text-light">${n.anio_periodo}</span></td>
- <td><span class="text-light">${n.materia_nombre}</span></td>
- <td><span class="text-light">${n.total_clases}</span></td>
- </tr>
- `).join('')}
- </tbody>
- </table>
- </div>
- `;
+        <div class="header-seccion" style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <h2>Asignaciones</h2>
+                <p>Distribución de los programas entre los grados.</p>
+            </div>
+            <div>
+                <button id="btn-nueva-asignacion" class="btn-primary">➕ Añadir</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table" id="tabla-asignaciones">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th># Prog</th>
+                        <th>Programa</th>
+                        <th>Grado</th>
+                        <th>Estatus</th>
+                        <th>Periodo</th>
+                        <th>Materia</th>
+                        <th># Clases</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${vistaAsignaciones.map(n => `
+                        <tr data-id="${n.asigna_id}" class="fila-asignacion" style="cursor:pointer;">
+                            <td><strong># ${n.asigna_id}</strong></td>
+                            <td class="text-bold">${n.programa_id}</td>
+                            <td class="text-bold">${n.programa_tema || 'Sin programa'}</td>
+                            <td><span class="text-light">${n.grado_numero || 'N/A'}</span></td>
+                            <td>
+                                <span class="badge" style="background-color: ${n.asigna_estatus === 'Activa' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
+                                    ${n.asigna_estatus}
+                                </span>
+                            </td>
+                            <td><span class="text-light">${n.anio_periodo || 'N/A'}</span></td>
+                            <td><span class="text-light">${n.materia_nombre || 'N/A'}</span></td>
+                            <td><span class="text-light">${n.total_clases ?? 0}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal Asignaciones -->
+        <div id="modal-asignacion" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-asignacion-title">Asignación</h3>
+                    <button id="modal-asignacion-close" class="modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-asignacion">
+                        <input type="hidden" id="asigna-id">
+                        
+                        <div class="form-row">
+                            <label>Programa (Disponible)</label>
+                            <select id="asigna-programa" required>
+                                <option value="">-- Seleccionar Programa --</option>
+                                ${opcionesProgramas}
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Grado</label>
+                            <select id="asigna-grado" required>
+                                <option value="">-- Seleccionar Grado --</option>
+                                ${opcionesGrados}
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Periodo (Año)</label>
+                            <select id="asigna-anio" required>
+                                <option value="">-- Seleccionar Periodo --</option>
+                                ${opcionesAnios}
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label>Estatus de Asignación</label>
+                            <select id="asigna-estatus" required>
+                                <option value="Activa">Activa</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Terminada">Terminada</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-cancelar-asignacion" class="btn-secondary">Cancelar</button>
+                    <button id="btn-limpiar-asignacion" class="btn-tertiary">Limpiar</button>
+                    <button id="btn-borrar-asignacion" class="btn-danger" style="display:none;">Eliminar</button>
+                    <button id="btn-guardar-asignacion" class="btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    `;
+
     mainContent.innerHTML = htmlTemplate;
+
+    // --- EVENTOS ---
+    
+    // Abrir modal para añadir
+    document.getElementById('btn-nueva-asignacion').addEventListener('click', () => abrirModalAsignacion());
+
+    // Abrir modal para editar al hacer clic en una fila
+    document.querySelectorAll('.fila-asignacion').forEach(row => {
+        row.addEventListener('click', async () => {
+            const id = row.getAttribute('data-id');
+            // Consultar directamente la tabla 'asignaciones' para obtener las FK exactas
+            const { data: asigna } = await supabase.from('asignaciones').select('*').eq('id', id).maybeSingle();
+            if (asigna) {
+                abrirModalAsignacion(asigna);
+            }
+        });
+    });
+
+    // Controladores de botones del Modal
+    document.getElementById('modal-asignacion-close').addEventListener('click', () => cerrarModalAsignacion());
+    document.getElementById('btn-guardar-asignacion').addEventListener('click', guardarAsignacion);
+    document.getElementById('btn-borrar-asignacion').addEventListener('click', borrarAsignacion);
+    document.getElementById('btn-cancelar-asignacion').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsignacion(); });
+    document.getElementById('btn-limpiar-asignacion').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioAsignacion(); });
 }
+
+    // Abrir Modal
+    function abrirModalAsignacion(asignacion = null) {
+        const modal = document.getElementById('modal-asignacion');
+        const titulo = document.getElementById('modal-asignacion-title');
+        const inputId = document.getElementById('asigna-id');
+        const selPrograma = document.getElementById('asigna-programa');
+        const selGrado = document.getElementById('asigna-grado');
+        const selAnio = document.getElementById('asigna-anio');
+        const selEstatus = document.getElementById('asigna-estatus');
+        const btnBorrar = document.getElementById('btn-borrar-asignacion');
+
+        if (asignacion) {
+            titulo.textContent = `Asignación #${asignacion.id}`;
+            inputId.value = asignacion.id;
+            selPrograma.value = asignacion.programa_id || '';
+            selGrado.value = asignacion.grado_id || '';
+            selAnio.value = asignacion.anio_id || '';
+            selEstatus.value = asignacion.asigna_estatus || 'Activa';
+            btnBorrar.style.display = 'inline-block';
+        } else {
+            titulo.textContent = 'Nueva Asignación';
+            inputId.value = '';
+            selPrograma.value = '';
+            selGrado.value = '';
+            selAnio.value = '';
+            selEstatus.value = 'Activa';
+            btnBorrar.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    // Cerrar Modal
+    function cerrarModalAsignacion() {
+        const modal = document.getElementById('modal-asignacion');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Guardar (Insert / Update) en la tabla 'asignaciones'
+    async function guardarAsignacion(e) {
+        e.preventDefault();
+
+        const id = document.getElementById('asigna-id').value;
+        const programa_id = document.getElementById('asigna-programa').value;
+        const grado_id = document.getElementById('asigna-grado').value;
+        const anio_id = document.getElementById('asigna-anio').value;
+        const asigna_estatus = document.getElementById('asigna-estatus').value;
+
+        if (!programa_id) { mostrarMensaje('error', 'Seleccione un programa'); return; }
+        if (!grado_id) { mostrarMensaje('error', 'Seleccione un grado'); return; }
+        if (!anio_id) { mostrarMensaje('error', 'Seleccione un período (año)'); return; }
+
+        const datos = {
+            programa_id: parseInt(programa_id),
+            grado_id: parseInt(grado_id),
+            anio_id: parseInt(anio_id),
+            asigna_estatus: asigna_estatus
+        };
+
+        if (id) {
+            // Actualizar registro existente
+            const { error } = await supabase.from('asignaciones').update(datos).eq('id', id);
+            if (error) { 
+                mostrarMensaje('error', 'Error al actualizar asignación: ' + error.message); 
+                return; 
+            }
+            mostrarMensaje('success', 'Asignación actualizada correctamente');
+        } else {
+            // Crear nuevo registro
+            const { error } = await supabase.from('asignaciones').insert(datos);
+            if (error) { 
+                mostrarMensaje('error', 'Error al crear asignación: ' + error.message); 
+                return; 
+            }
+            mostrarMensaje('success', 'Asignación creada correctamente');
+        }
+
+        cerrarModalAsignacion();
+        cargarVistaAsignaciones();
+    }
+
+    // Borrar registro en la tabla 'asignaciones'
+    async function borrarAsignacion(e) {
+        e.preventDefault();
+        const id = document.getElementById('asigna-id').value;
+        if (!id) return;
+
+        if (!confirm(`¿Desea eliminar la asignación #${id}? Esta acción no se puede deshacer.`)) return;
+
+        const { error } = await supabase.from('asignaciones').delete().eq('id', id);
+        if (error) { 
+            mostrarMensaje('error', 'Error al eliminar asignación: ' + error.message); 
+            return; 
+        }
+
+        mostrarMensaje('success', 'Asignación eliminada correctamente');
+        cerrarModalAsignacion();
+        cargarVistaAsignaciones();
+    }
+
+    // Limpiar Formulario
+    function limpiarFormularioAsignacion() {
+        document.getElementById('asigna-id').value = '';
+        document.getElementById('asigna-programa').value = '';
+        document.getElementById('asigna-grado').value = '';
+        document.getElementById('asigna-anio').value = '';
+        document.getElementById('asigna-estatus').value = 'Activa';
+        document.getElementById('asigna-programa').focus();
+    }
 
 // 9. Renderizar Tabla Ejecución de Clases
 async function cargarVistaControl() {
