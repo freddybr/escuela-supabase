@@ -2002,20 +2002,29 @@ async function cargarVistaControl(filtrosPrevios = null) {
     const todosProfesores = resProfesores.data || [];
     const vista_control = resVista.data || [];
 
-    // Mapa rápido de avatares/fotos para la tabla
+    // Mapa de avatares/fotos para la tabla
     const mapaFotosProfesores = new Map();
     todosProfesores.forEach(p => {
         mapaFotosProfesores.set(p.id, p.profe_imagen_url);
     });
 
-    // Opciones para los select de filtros de la barra superior
+    // Opciones para los select de filtros
     const gradosUnicos = [...new Set(vista_control.map(n => n.grado_numero).filter(Boolean))].sort((a, b) => a - b);
-    const programasUnicos = [...new Set(vista_control.map(n => n.programa_id).filter(Boolean))].sort((a, b) => a - b);
+    
+    // Obtener lista única de programas con ID y Nombre/Tema
+    const mapaProgramas = new Map();
+    vista_control.forEach(n => {
+        if (n.programa_id && !mapaProgramas.has(n.programa_id)) {
+            mapaProgramas.set(n.programa_id, n.programa_tema || `Programa ${n.programa_id}`);
+        }
+    });
+    const programasOrdenados = Array.from(mapaProgramas.entries()).sort((a, b) => a[0] - b[0]);
+
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
 
     let htmlTemplate = `
     <div class="header-seccion">
-        <h2>Ejecución</h2>
+        <h2 id="titulo-control-header">Ejecución</h2>
         <p>Control de ejecución de clases.</p>
     </div>
 
@@ -2029,10 +2038,10 @@ async function cargarVistaControl(filtrosPrevios = null) {
                 ${gradosUnicos.map(grado => `<option value="${grado}">Grado ${grado}</option>`).join('')}
             </select>
         </div>
-        <div style="width: 180px;">
+        <div style="width: 220px;">
             <select id="filter-programa" class="form-select" onchange="window.aplicarFiltrosControl()">
                 <option value="">Todos los Programas</option>
-                ${programasUnicos.map(id => `<option value="${id}">Programa ${id}</option>`).join('')}
+                ${programasOrdenados.map(([id, tema]) => `<option value="${id}" data-nombre="${tema}">${tema}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
@@ -2048,9 +2057,6 @@ async function cargarVistaControl(filtrosPrevios = null) {
             <thead>
                 <tr>
                     <th>Fecha</th>
-                    <th># Grado</th>
-                    <th># Prog</th>
-                    <th>Programa</th>
                     <th># Clase</th>
                     <th>Clase</th>
                     <th style="width: 90px; text-align: center;">Foto</th>
@@ -2086,10 +2092,7 @@ async function cargarVistaControl(filtrosPrevios = null) {
                             class="fila-control"
                             style="cursor: pointer;"
                         >
-                            <td><strong> ${n.control_fecha ?? 'Sin fecha'}</strong></td>
-                            <td class="text-bold">${n.grado_numero ?? ''}</td>
-                            <td class="text-bold">${n.programa_id ?? ''}</td>
-                            <td><span class="text-light">${n.programa_tema ?? ''}</span></td>
+                            <td><strong># ${n.control_fecha ?? 'Sin fecha'}</strong></td>
                             <td><span class="text-light">${n.clase_num ?? ''}</span></td>
                             <td><span class="text-light">${n.clase_tema ?? ''}</span></td>
                             <td style="text-align: center;">
@@ -2216,7 +2219,7 @@ function obtenerEstadoFiltros() {
     };
 }
 
-// Función para abrir Modal, colocar la cabecera y llenar los datos
+// Función para abrir Modal
 function abrirModalControl(registro, profesoresDisponibles, claseNum = '', claseTema = '') {
     const modal = document.getElementById('modal-control');
     const titulo = document.getElementById('modal-control-title');
@@ -2226,7 +2229,6 @@ function abrirModalControl(registro, profesoresDisponibles, claseNum = '', clase
     const txtObserv = document.getElementById('control-observ');
     const selEstatus = document.getElementById('control-estatus');
 
-    // Asignar Título dinámico con Número y Nombre de Clase
     const infoClase = claseNum ? `Clase #${claseNum}: ` : '';
     titulo.textContent = `${infoClase}${claseTema || 'Editar Clase'}`;
 
@@ -2235,7 +2237,6 @@ function abrirModalControl(registro, profesoresDisponibles, claseNum = '', clase
     txtObserv.value = registro.control_observ || '';
     selEstatus.value = registro.control_estatus || 'Pendiente';
 
-    // Generar dinámicamente las opciones de profesores filtrados por Grado
     if (profesoresDisponibles && profesoresDisponibles.length > 0) {
         selProfe.innerHTML = '<option value="">-- Seleccionar Profesor --</option>' +
             profesoresDisponibles.map(p => `<option value="${p.id}">${p.profe_nombre}</option>`).join('');
@@ -2252,7 +2253,7 @@ function cerrarModalControl() {
     if (modal) modal.style.display = 'none';
 }
 
-// Guardar los cambios únicamente en la tabla 'control' y recargar preservando los filtros
+// Guardar los cambios únicamente en la tabla 'control' y recargar
 async function guardarControl(e) {
     e.preventDefault();
 
@@ -2264,7 +2265,6 @@ async function guardarControl(e) {
 
     if (!id) return;
 
-    // 1. Guardar el estado actual de los filtros
     const filtrosActuales = obtenerEstadoFiltros();
 
     const payload = {
@@ -2284,7 +2284,6 @@ async function guardarControl(e) {
     mostrarMensaje('success', 'Registro de ejecución actualizado correctamente');
     cerrarModalControl();
 
-    // 2. Recargar pasando los filtros guardados
     cargarVistaControl(filtrosActuales);
 }
 
@@ -2300,8 +2299,20 @@ function limpiarFormularioControl() {
 window.aplicarFiltrosControl = function () {
     const textoBusqueda = (document.getElementById('filter-search')?.value || '').toLowerCase();
     const gradoSel = document.getElementById('filter-grado')?.value || '';
-    const programaSel = document.getElementById('filter-programa')?.value || '';
+    const selectPrograma = document.getElementById('filter-programa');
+    const programaSel = selectPrograma?.value || '';
     const estatusSel = document.getElementById('filter-estatus')?.value || '';
+
+    // Actualizar el título del cabezal según el programa seleccionado
+    const tituloHeader = document.getElementById('titulo-control-header');
+    if (tituloHeader) {
+        if (programaSel && selectPrograma.selectedIndex > 0) {
+            const nombrePrograma = selectPrograma.options[selectPrograma.selectedIndex].getAttribute('data-nombre');
+            tituloHeader.textContent = `Ejecución - ${nombrePrograma}`;
+        } else {
+            tituloHeader.textContent = 'Ejecución';
+        }
+    }
 
     const filas = document.querySelectorAll('#tabla-control tbody tr');
 
