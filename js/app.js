@@ -1129,7 +1129,7 @@ async function cargarVistaAlumnos() {
                 <thead> 
                     <tr>
                         <th>ID</th>
-                        <th style="width: 50px; text-align: center;">Foto</th>
+                        <th style="width: 90px; text-align: center;">Foto</th>
                         <th>Nombre</th>
                         <th>Grado</th>
                         <th>Email</th>
@@ -1449,7 +1449,7 @@ async function cargarVistaProfesores() {
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th style="width: 50px; text-align: center;">Foto</th>
+                        <th style="width: 90px; text-align: center;">Foto</th>
                         <th>Grado</th>
                         <th>Nombre</th>
                         <th>Email</th>
@@ -1562,139 +1562,139 @@ async function cargarVistaProfesores() {
     document.getElementById('btn-limpiar-profesor').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioProfesor(); });
 }
 
-/* =========================================================================
-   FUNCIONES DE SOPORTE CRUD PARA PROFESORES
-   ========================================================================= */
+    /* =========================================================================
+    FUNCIONES DE SOPORTE CRUD PARA PROFESORES
+    ========================================================================= */
 
-let editandoProfeId = null; // Control de edicion
+    let editandoProfeId = null; // Control de edicion
 
-function abrirModalProfesor(profe = null) {
-    const modal = document.getElementById('modal-profesor');
-    const titulo = document.getElementById('modal-profesor-title');
-    const inpNombre = document.getElementById('profe-nombre');
-    const selGrado = document.getElementById('profe-grado');
-    const inpEmail = document.getElementById('profe-email');
-    const inpTelf = document.getElementById('profe-telf');
-    const selEstatus = document.getElementById('profe-estatus');
-    const inpRol = document.getElementById('profe-rol');
-    const btnBorrar = document.getElementById('btn-borrar-profesor');
+    function abrirModalProfesor(profe = null) {
+        const modal = document.getElementById('modal-profesor');
+        const titulo = document.getElementById('modal-profesor-title');
+        const inpNombre = document.getElementById('profe-nombre');
+        const selGrado = document.getElementById('profe-grado');
+        const inpEmail = document.getElementById('profe-email');
+        const inpTelf = document.getElementById('profe-telf');
+        const selEstatus = document.getElementById('profe-estatus');
+        const inpRol = document.getElementById('profe-rol');
+        const btnBorrar = document.getElementById('btn-borrar-profesor');
 
-    if (profe) {
-        editandoProfeId = profe.id;
-        titulo.textContent = `Profesor #${profe.id}`;
-        inpNombre.value = profe.profe_nombre || '';
-        selGrado.value = profe.grado_id || '';
-        inpEmail.value = profe.profe_email || '';
-        inpTelf.value = profe.profe_telf || '';
-        selEstatus.value = profe.profe_estatus || 'Activo';
-        inpRol.value = profe.profe_rol || '';
-        btnBorrar.style.display = '';
-    } else {
-        editandoProfeId = null;
-        titulo.textContent = 'Nuevo Profesor';
-        inpNombre.value = '';
-        selGrado.value = '';
-        inpEmail.value = '';
-        inpTelf.value = '';
-        selEstatus.value = 'Activo';
-        inpRol.value = '';
-        btnBorrar.style.display = 'none';
-    }
-
-    modal.style.display = 'flex';
-}
-
-function cerrarModalProfesor() {
-    const modal = document.getElementById('modal-profesor');
-    modal.style.display = 'none';
-}
-
-async function guardarProfesor(e) {
-    e.preventDefault();
-    const nombre = document.getElementById('profe-nombre').value.trim();
-    const grado_id = document.getElementById('profe-grado').value || null;
-    const email = document.getElementById('profe-email').value.trim() || null;
-    const telf = document.getElementById('profe-telf').value.trim() || null;
-    const estatus = document.getElementById('profe-estatus').value;
-    const rol = document.getElementById('profe-rol').value.trim() || null;
-
-    if (!nombre) { mostrarMensaje('error', 'El nombre del profesor es obligatorio'); return; }
-
-    const payload = {
-        profe_nombre: nombre,
-        grado_id: grado_id ? parseInt(grado_id, 10) : null,
-        profe_email: email,
-        profe_telf: telf,
-        profe_estatus: estatus,
-        profe_rol: rol
-    };
-
-    if (editandoProfeId) {
-        // Actualizar profesor existente
-        const { error } = await supabase
-            .from('profesores')
-            .update(payload)
-            .eq('id', editandoProfeId);
-
-        if (error) { mostrarMensaje('error', 'Error al actualizar profesor: ' + error.message); return; }
-        mostrarMensaje('success', 'Profesor actualizado correctamente');
-    } else {
-        // Obtener el ID maximo existente
-        const { data: ultimoProfe, error: errorMax } = await supabase
-            .from('profesores')
-            .select('id')
-            .order('id', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (errorMax) {
-            mostrarMensaje('error', 'Error al obtener correlativo de ID: ' + errorMax.message);
-            return;
+        if (profe) {
+            editandoProfeId = profe.id;
+            titulo.textContent = `Profesor #${profe.id}`;
+            inpNombre.value = profe.profe_nombre || '';
+            selGrado.value = profe.grado_id || '';
+            inpEmail.value = profe.profe_email || '';
+            inpTelf.value = profe.profe_telf || '';
+            selEstatus.value = profe.profe_estatus || 'Activo';
+            inpRol.value = profe.profe_rol || '';
+            btnBorrar.style.display = '';
+        } else {
+            editandoProfeId = null;
+            titulo.textContent = 'Nuevo Profesor';
+            inpNombre.value = '';
+            selGrado.value = '';
+            inpEmail.value = '';
+            inpTelf.value = '';
+            selEstatus.value = 'Activo';
+            inpRol.value = '';
+            btnBorrar.style.display = 'none';
         }
 
-        const siguienteId = ultimoProfe ? Number(ultimoProfe.id) + 1 : 1;
-        payload.id = siguienteId;
-
-        // Insertar nuevo profesor
-        const { error } = await supabase
-            .from('profesores')
-            .insert(payload);
-
-        if (error) { mostrarMensaje('error', 'Error al crear profesor: ' + error.message); return; }
-        mostrarMensaje('success', `Profesor #${siguienteId} registrado correctamente`);
+        modal.style.display = 'flex';
     }
 
-    cerrarModalProfesor();
-    cargarVistaProfesores();
-}
+    function cerrarModalProfesor() {
+        const modal = document.getElementById('modal-profesor');
+        modal.style.display = 'none';
+    }
 
-async function borrarProfesor(e) {
-    e.preventDefault();
-    if (!editandoProfeId) return;
+    async function guardarProfesor(e) {
+        e.preventDefault();
+        const nombre = document.getElementById('profe-nombre').value.trim();
+        const grado_id = document.getElementById('profe-grado').value || null;
+        const email = document.getElementById('profe-email').value.trim() || null;
+        const telf = document.getElementById('profe-telf').value.trim() || null;
+        const estatus = document.getElementById('profe-estatus').value;
+        const rol = document.getElementById('profe-rol').value.trim() || null;
 
-    if (!confirm(`¿Deseas eliminar al profesor #${editandoProfeId}? Esta acción no se puede deshacer.`)) return;
+        if (!nombre) { mostrarMensaje('error', 'El nombre del profesor es obligatorio'); return; }
 
-    const { error } = await supabase
-        .from('profesores')
-        .delete()
-        .eq('id', editandoProfeId);
+        const payload = {
+            profe_nombre: nombre,
+            grado_id: grado_id ? parseInt(grado_id, 10) : null,
+            profe_email: email,
+            profe_telf: telf,
+            profe_estatus: estatus,
+            profe_rol: rol
+        };
 
-    if (error) { mostrarMensaje('error', 'Error al eliminar profesor: ' + error.message); return; }
-    mostrarMensaje('success', 'Profesor eliminado correctamente');
+        if (editandoProfeId) {
+            // Actualizar profesor existente
+            const { error } = await supabase
+                .from('profesores')
+                .update(payload)
+                .eq('id', editandoProfeId);
 
-    cerrarModalProfesor();
-    cargarVistaProfesores();
-}
+            if (error) { mostrarMensaje('error', 'Error al actualizar profesor: ' + error.message); return; }
+            mostrarMensaje('success', 'Profesor actualizado correctamente');
+        } else {
+            // Obtener el ID maximo existente
+            const { data: ultimoProfe, error: errorMax } = await supabase
+                .from('profesores')
+                .select('id')
+                .order('id', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-function limpiarFormularioProfesor() {
-    document.getElementById('profe-nombre').value = '';
-    document.getElementById('profe-grado').value = '';
-    document.getElementById('profe-email').value = '';
-    document.getElementById('profe-telf').value = '';
-    document.getElementById('profe-estatus').value = 'Activo';
-    document.getElementById('profe-rol').value = '';
-    document.getElementById('profe-nombre').focus();
-}
+            if (errorMax) {
+                mostrarMensaje('error', 'Error al obtener correlativo de ID: ' + errorMax.message);
+                return;
+            }
+
+            const siguienteId = ultimoProfe ? Number(ultimoProfe.id) + 1 : 1;
+            payload.id = siguienteId;
+
+            // Insertar nuevo profesor
+            const { error } = await supabase
+                .from('profesores')
+                .insert(payload);
+
+            if (error) { mostrarMensaje('error', 'Error al crear profesor: ' + error.message); return; }
+            mostrarMensaje('success', `Profesor #${siguienteId} registrado correctamente`);
+        }
+
+        cerrarModalProfesor();
+        cargarVistaProfesores();
+    }
+
+    async function borrarProfesor(e) {
+        e.preventDefault();
+        if (!editandoProfeId) return;
+
+        if (!confirm(`¿Deseas eliminar al profesor #${editandoProfeId}? Esta acción no se puede deshacer.`)) return;
+
+        const { error } = await supabase
+            .from('profesores')
+            .delete()
+            .eq('id', editandoProfeId);
+
+        if (error) { mostrarMensaje('error', 'Error al eliminar profesor: ' + error.message); return; }
+        mostrarMensaje('success', 'Profesor eliminado correctamente');
+
+        cerrarModalProfesor();
+        cargarVistaProfesores();
+    }
+
+    function limpiarFormularioProfesor() {
+        document.getElementById('profe-nombre').value = '';
+        document.getElementById('profe-grado').value = '';
+        document.getElementById('profe-email').value = '';
+        document.getElementById('profe-telf').value = '';
+        document.getElementById('profe-estatus').value = 'Activo';
+        document.getElementById('profe-rol').value = '';
+        document.getElementById('profe-nombre').focus();
+    }
 
 // 8. Renderizar Tabla Asignaciones (Lectura de vista_asignaciones_detalles / Escritura en asignaciones)
 async function cargarVistaAsignaciones() {
@@ -1979,14 +1979,14 @@ async function cargarVistaAsignaciones() {
         document.getElementById('asigna-programa').focus();
     }
 
-// 9. Renderizar Tabla Ejecución de Clases
-async function cargarVistaControl() {
+// 9. Renderizar Tabla Ejecución de Clases (Edición en la tabla 'control')
+async function cargarVistaControl(filtrosPrevios = null) {
     mainContent.innerHTML = '<div class="loading">Consultando Ejecución de Clases...</div>';
 
-    // 1. Consultar vista_control y profesores en paralelo aprovechando la relación DB
+    // 1. Consultar la vista_control y la lista completa de profesores
     const [resVista, resProfesores] = await Promise.all([
         supabase.from('vista_control').select('*'),
-        supabase.from('profesores').select('id, profe_imagen_url')
+        supabase.from('profesores').select('id, profe_nombre, profe_imagen_url, grado_id')
     ]);
 
     if (resVista.error) {
@@ -1995,30 +1995,20 @@ async function cargarVistaControl() {
     }
 
     if (resProfesores.error) {
-        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar fotos: ${resProfesores.error.message}</p>`;
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar profesores: ${resProfesores.error.message}</p>`;
         return;
     }
 
-    // 2. Crear un mapa con las fotos de los profesores usando su ID
+    const todosProfesores = resProfesores.data || [];
+    const vista_control = resVista.data || [];
+
+    // Mapa rápido de avatares/fotos para la tabla
     const mapaFotosProfesores = new Map();
-    resProfesores.data.forEach(p => {
+    todosProfesores.forEach(p => {
         mapaFotosProfesores.set(p.id, p.profe_imagen_url);
     });
 
-    const vista_control = resVista.data;
-
-    vista_control.sort((a, b) => {
-        if (!a.control_fecha && !b.control_fecha) return (a.control_id || 0) - (b.control_id || 0);
-        if (!a.control_fecha) return 1;
-        if (!b.control_fecha) return -1;
-
-        const comparacionFecha = new Date(a.control_fecha) - new Date(b.control_fecha);
-        if (comparacionFecha === 0) {
-            return (a.control_id || 0) - (b.control_id || 0);
-        }
-        return comparacionFecha;
-    });
-
+    // Opciones para los select de filtros de la barra superior
     const gradosUnicos = [...new Set(vista_control.map(n => n.grado_numero).filter(Boolean))].sort((a, b) => a - b);
     const programasUnicos = [...new Set(vista_control.map(n => n.programa_id).filter(Boolean))].sort((a, b) => a - b);
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
@@ -2059,102 +2049,282 @@ async function cargarVistaControl() {
                 <tr>
                     <th>Fecha</th>
                     <th># Grado</th>
-                    <th># ID Programa</th>
+                    <th># Prog</th>
                     <th>Programa</th>
                     <th># Clase</th>
                     <th>Clase</th>
-                    <th style="width: 50px; text-align: center;">Foto</th>
+                    <th style="width: 90px; text-align: center;">Foto</th>
                     <th>Profesor</th>
                     <th>Observaciones</th>
                     <th># Estatus</th>
                 </tr>
             </thead>
-                <tbody>
-                    ${[...vista_control]
-                        .sort((a, b) => {
-                            // Extrae el primer dígito del grado (ej. "1er Grado" -> 1)
-                            const gradoA = parseInt(a.grado_numero, 10) || 0;
-                            const gradoB = parseInt(b.grado_numero, 10) || 0;
+            <tbody>
+                ${[...vista_control]
+                    .sort((a, b) => {
+                        const gradoA = parseInt(a.grado_numero, 10) || 0;
+                        const gradoB = parseInt(b.grado_numero, 10) || 0;
+                        if (gradoA !== gradoB) return gradoA - gradoB;
+                        return (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0);
+                    })
+                    .map(n => {
+                        const urlImagenBase = mapaFotosProfesores.get(n.profe_id);
+                        const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
+                            ? urlImagenBase
+                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.profe_nombre || 'Profe')}&backgroundColor=4f46e5`;
 
-                            // 1. Primero ordena por Grado
-                            if (gradoA !== gradoB) {
-                                return gradoA - gradoB;
-                            }
-
-                            // 2. Si es el mismo Grado, ordena por Clase
-                            return (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0);
-                        })
-                        .map(n => {
-                            // Obtener la URL de la foto usando profe_id mapeado desde la tabla profesores
-                            const urlImagenBase = mapaFotosProfesores.get(n.profe_id);
-                            const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
-                                ? urlImagenBase
-                                : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.profe_nombre || 'Profe')}&backgroundColor=4f46e5`;
-
-                            return `
-                            <tr 
+                        return `
+                        <tr 
+                            data-id="${n.control_id}"
                             data-fecha="${n.control_fecha || ''}" 
                             data-grado="${n.grado_numero || ''}"
                             data-programa="${n.programa_id || ''}" 
-                            data-clase="${n.clase_tema || ''}" 
+                            data-clase-num="${n.clase_num || ''}"
+                            data-clase-tema="${n.clase_tema || ''}" 
                             data-profesor="${n.profe_nombre || ''}" 
                             data-estatus="${n.control_estatus || ''}"
-                            >
-                                <td><strong># ${n.control_fecha ?? 'Sin fecha'}</strong></td>
-                                <td class="text-bold">${n.grado_numero}</td>
-                                <td class="text-bold">${n.programa_id}</td>
-                                <td><span class="text-light">${n.programa_tema}</span></td>
-                                <td><span class="text-light">${n.clase_num}</span></td>
-                                <td><span class="text-light">${n.clase_tema}</span></td>
-                                <td style="text-align: center;">
-                                    <img src="${fotoUrl}" alt="${n.profe_nombre || 'Profesor'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
-                                </td>
-                                <td><span class="text-light">${n.profe_nombre}</span></td>
-                                <td><span class="text-light">${n.control_observaciones}</span></td>
-                                <td>
-                                    <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
-                                        ${n.control_estatus}
-                                    </span>
-                                </td>
-                            </tr>
-                            `;
-                        }).join('')}
-                </tbody>
+                            class="fila-control"
+                            style="cursor: pointer;"
+                        >
+                            <td><strong> ${n.control_fecha ?? 'Sin fecha'}</strong></td>
+                            <td class="text-bold">${n.grado_numero ?? ''}</td>
+                            <td class="text-bold">${n.programa_id ?? ''}</td>
+                            <td><span class="text-light">${n.programa_tema ?? ''}</span></td>
+                            <td><span class="text-light">${n.clase_num ?? ''}</span></td>
+                            <td><span class="text-light">${n.clase_tema ?? ''}</span></td>
+                            <td style="text-align: center;">
+                                <img src="${fotoUrl}" alt="${n.profe_nombre || 'Profesor'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
+                            </td>
+                            <td><span class="text-light">${n.profe_nombre || 'Sin asignar'}</span></td>
+                            <td><span class="text-light">${n.control_observaciones || ''}</span></td>
+                            <td>
+                                <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
+                                    ${n.control_estatus || 'Pendiente'}
+                                </span>
+                            </td>
+                        </tr>
+                        `;
+                    }).join('')}
+            </tbody>
         </table>
     </div>
-     `;
-    
-     mainContent.innerHTML = htmlTemplate;
+
+    <!-- Modal Editar Control -->
+    <div id="modal-control" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-control-title">Editar Ejecución de Clase</h3>
+                <button id="modal-control-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-control">
+                    <input type="hidden" id="control-id">
+
+                    <div class="form-row">
+                        <label>Fecha de Clase</label>
+                        <input id="control-fecha" type="date" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Profesor (Filtrado por Grado)</label>
+                        <select id="control-profe">
+                            <option value="">-- Seleccionar Profesor --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Observaciones</label>
+                        <textarea id="control-observ" rows="3" placeholder="Ingresa observaciones de la clase..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Estatus</label>
+                        <select id="control-estatus" required>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Programada">Programada</option>
+                            <option value="Vista">Vista</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancelar-control" class="btn-secondary">Cancelar</button>
+                <button id="btn-limpiar-control" class="btn-tertiary">Limpiar</button>
+                <button id="btn-guardar-control" class="btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    mainContent.innerHTML = htmlTemplate;
+
+    // RESTAURAR FILTROS PREVIOS SI EXISTEN
+    if (filtrosPrevios) {
+        if (document.getElementById('filter-search')) document.getElementById('filter-search').value = filtrosPrevios.texto;
+        if (document.getElementById('filter-grado')) document.getElementById('filter-grado').value = filtrosPrevios.grado;
+        if (document.getElementById('filter-programa')) document.getElementById('filter-programa').value = filtrosPrevios.programa;
+        if (document.getElementById('filter-estatus')) document.getElementById('filter-estatus').value = filtrosPrevios.estatus;
+        
+        window.aplicarFiltrosControl();
+    }
+
+    // --- EVENTOS ---
+
+    // Al hacer clic en una fila, abrir modal con datos para edición
+    document.querySelectorAll('.fila-control').forEach(row => {
+        row.addEventListener('click', async () => {
+            const controlId = row.getAttribute('data-id');
+            const claseNum = row.getAttribute('data-clase-num') || '';
+            const claseTema = row.getAttribute('data-clase-tema') || '';
+
+            // 1. Obtener los datos actuales del registro en la tabla 'control'
+            const { data: regControl, error: errControl } = await supabase
+                .from('control')
+                .select('*, asignaciones(grado_id)')
+                .eq('id', controlId)
+                .maybeSingle();
+
+            if (errControl || !regControl) {
+                mostrarMensaje('error', 'Error al obtener datos del registro.');
+                return;
+            }
+
+            // 2. Extraer el grado_id correspondiente a la asignación
+            const gradoIdClase = regControl.asignaciones ? regControl.asignaciones.grado_id : null;
+
+            // 3. Filtrar los profesores de la DB cuyo grado_id coincida con el grado de la clase
+            const profesoresDelGrado = todosProfesores.filter(p => p.grado_id === gradoIdClase);
+
+            abrirModalControl(regControl, profesoresDelGrado, claseNum, claseTema);
+        });
+    });
+
+    // Controladores del Modal
+    document.getElementById('modal-control-close').addEventListener('click', () => cerrarModalControl());
+    document.getElementById('btn-guardar-control').addEventListener('click', guardarControl);
+    document.getElementById('btn-cancelar-control').addEventListener('click', (e) => { e.preventDefault(); cerrarModalControl(); });
+    document.getElementById('btn-limpiar-control').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioControl(); });
 }
 
-    window.aplicarFiltrosControl = function () {
-        const textoBusqueda = (document.getElementById('filter-search')?.value || '').toLowerCase();
-        const gradoSel = document.getElementById('filter-grado')?.value || '';
-        const programaSel = document.getElementById('filter-programa')?.value || '';
-        const estatusSel = document.getElementById('filter-estatus')?.value || '';
-
-        const filas = document.querySelectorAll('#tabla-control tbody tr');
-
-        filas.forEach(row => {
-            const fecha = row.getAttribute('data-fecha').toLowerCase();
-            const clase = row.getAttribute('data-clase').toLowerCase();
-            const profesor = row.getAttribute('data-profesor').toLowerCase();
-            const grado = row.getAttribute('data-grado');
-            const programa = row.getAttribute('data-programa');
-            const estatus = row.getAttribute('data-estatus');
-
-            const coincideTexto = !textoBusqueda || fecha.includes(textoBusqueda) || clase.includes(textoBusqueda) || profesor.includes(textoBusqueda);
-            const coincideGrado = !gradoSel || grado === gradoSel;
-            const coincidePrograma = !programaSel || programa === programaSel;
-            const coincideEstatus = !estatusSel || estatus === estatusSel;
-
-            if (coincideTexto && coincideGrado && coincidePrograma && coincideEstatus) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
+// Obtener el estado actual de los inputs de la barra de filtros
+function obtenerEstadoFiltros() {
+    return {
+        texto: document.getElementById('filter-search')?.value || '',
+        grado: document.getElementById('filter-grado')?.value || '',
+        programa: document.getElementById('filter-programa')?.value || '',
+        estatus: document.getElementById('filter-estatus')?.value || ''
     };
+}
+
+// Función para abrir Modal, colocar la cabecera y llenar los datos
+function abrirModalControl(registro, profesoresDisponibles, claseNum = '', claseTema = '') {
+    const modal = document.getElementById('modal-control');
+    const titulo = document.getElementById('modal-control-title');
+    const inputId = document.getElementById('control-id');
+    const inpFecha = document.getElementById('control-fecha');
+    const selProfe = document.getElementById('control-profe');
+    const txtObserv = document.getElementById('control-observ');
+    const selEstatus = document.getElementById('control-estatus');
+
+    // Asignar Título dinámico con Número y Nombre de Clase
+    const infoClase = claseNum ? `Clase #${claseNum}: ` : '';
+    titulo.textContent = `${infoClase}${claseTema || 'Editar Clase'}`;
+
+    inputId.value = registro.id;
+    inpFecha.value = registro.control_fecha || '';
+    txtObserv.value = registro.control_observ || '';
+    selEstatus.value = registro.control_estatus || 'Pendiente';
+
+    // Generar dinámicamente las opciones de profesores filtrados por Grado
+    if (profesoresDisponibles && profesoresDisponibles.length > 0) {
+        selProfe.innerHTML = '<option value="">-- Seleccionar Profesor --</option>' +
+            profesoresDisponibles.map(p => `<option value="${p.id}">${p.profe_nombre}</option>`).join('');
+    } else {
+        selProfe.innerHTML = '<option value="">-- No hay profesores registrados para este grado --</option>';
+    }
+
+    selProfe.value = registro.profe_id || '';
+    modal.style.display = 'flex';
+}
+
+function cerrarModalControl() {
+    const modal = document.getElementById('modal-control');
+    if (modal) modal.style.display = 'none';
+}
+
+// Guardar los cambios únicamente en la tabla 'control' y recargar preservando los filtros
+async function guardarControl(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('control-id').value;
+    const control_fecha = document.getElementById('control-fecha').value || null;
+    const profe_id_val = document.getElementById('control-profe').value;
+    const control_observ = document.getElementById('control-observ').value.trim();
+    const control_estatus = document.getElementById('control-estatus').value;
+
+    if (!id) return;
+
+    // 1. Guardar el estado actual de los filtros
+    const filtrosActuales = obtenerEstadoFiltros();
+
+    const payload = {
+        control_fecha: control_fecha,
+        profe_id: profe_id_val ? parseInt(profe_id_val) : null,
+        control_observ: control_observ || null,
+        control_estatus: control_estatus
+    };
+
+    const { error } = await supabase.from('control').update(payload).eq('id', id);
+
+    if (error) {
+        mostrarMensaje('error', 'Error al actualizar el registro: ' + error.message);
+        return;
+    }
+
+    mostrarMensaje('success', 'Registro de ejecución actualizado correctamente');
+    cerrarModalControl();
+
+    // 2. Recargar pasando los filtros guardados
+    cargarVistaControl(filtrosActuales);
+}
+
+function limpiarFormularioControl() {
+    document.getElementById('control-fecha').value = '';
+    document.getElementById('control-profe').value = '';
+    document.getElementById('control-observ').value = '';
+    document.getElementById('control-estatus').value = 'Pendiente';
+    document.getElementById('control-fecha').focus();
+}
+
+// Función global de filtros para la tabla
+window.aplicarFiltrosControl = function () {
+    const textoBusqueda = (document.getElementById('filter-search')?.value || '').toLowerCase();
+    const gradoSel = document.getElementById('filter-grado')?.value || '';
+    const programaSel = document.getElementById('filter-programa')?.value || '';
+    const estatusSel = document.getElementById('filter-estatus')?.value || '';
+
+    const filas = document.querySelectorAll('#tabla-control tbody tr');
+
+    filas.forEach(row => {
+        const fecha = row.getAttribute('data-fecha').toLowerCase();
+        const clase = (row.getAttribute('data-clase-tema') || '').toLowerCase();
+        const profesor = row.getAttribute('data-profesor').toLowerCase();
+        const grado = row.getAttribute('data-grado');
+        const programa = row.getAttribute('data-programa');
+        const estatus = row.getAttribute('data-estatus');
+
+        const coincideTexto = !textoBusqueda || fecha.includes(textoBusqueda) || clase.includes(textoBusqueda) || profesor.includes(textoBusqueda);
+        const coincideGrado = !gradoSel || grado === gradoSel;
+        const coincidePrograma = !programaSel || programa === programaSel;
+        const coincideEstatus = !estatusSel || estatus === estatusSel;
+
+        if (coincideTexto && coincideGrado && coincidePrograma && coincideEstatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+};
 
 // 10. Renderizar Tabla de Asistencias
 async function cargarVistaAsistencias() {
