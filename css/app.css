@@ -130,6 +130,7 @@ body {
     gap: 10px;
     z-index: 90;
     transition: left 0.3s ease-in-out;
+    overflow-y: auto;
 }
 
 .app-aside.open {
@@ -145,6 +146,14 @@ body {
     padding-bottom: 8px;
 }
 
+.menu-group-title {
+    color: #64748b;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 12px 0 4px 6px;
+}
+
 .menu-nav {
     display: flex;
     flex-direction: column;
@@ -156,17 +165,33 @@ body {
     border: none;
     color: #94a3b8;
     text-align: left;
-    padding: 6px 6px;
+    padding: 8px 12px;
     font-size: 0.9rem;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .menu-btn:hover, .menu-btn.active {
     background: var(--accent);
     color: white;
+}
+
+/* --- ESTILO PARA ICONOS VECTORIALES SVG --- */
+.menu-svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    transition: stroke 0.2s;
 }
 
 /* Capa oscura trasera */
@@ -185,10 +210,10 @@ body {
    ========================================================================= */
 .app-main {
     flex: 1;
-    padding: 20px;
-    overflow-y: auto;     /* Activa el scroll vertical */
+    padding: 16px;
+    overflow-y: hidden;
     width: 100%;
-    max-height: 85vh;     /* Se adapta al 85% de la altura de la pantalla */
+    max-height: 85vh;
     position: relative;
     background-color: #ffffff;
 }
@@ -200,74 +225,114 @@ body {
     right: 0;
     background-color: #ffffff;
     z-index: 10;
-    padding: 15px 0;
+    padding: 10px 0;
     margin: 0;
 }
 
-.header-seccion h2 { font-size: 1.4rem; color: var(--text-primary); margin-bottom: 4px; }
-.header-seccion p { color: var(--text-muted); font-size: 0.9rem; }
+.header-seccion h2 { font-size: 1.3rem; color: var(--text-primary); margin-bottom: 4px; }
+.header-seccion p { color: var(--text-muted); font-size: 0.85rem; }
 
 /* Contenedor responsivo para tablas */
 .table-responsive {
     width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     background: white;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.03);
     border: 1px solid var(--border-color);
-    overflow-y: visible;
+    margin-top: 10px;
 }
 
 .table-control-scroll,
-.table-clases-scroll,
 .table-alumnos-scroll,
 .table-profesores-scroll {
+    max-height: calc(85vh - 210px);
+    overflow-x: auto;
+}
+
+.table-clases-scroll {
     max-height: calc(85vh - 210px);
     overflow-x: auto;
     overflow-y: hidden;
 }
 
-.app-main:has(.table-control-scroll) {
-    overflow-y: hidden;
-}
-
-.table-control-scroll .data-table,
-.table-clases-scroll .data-table,
-.table-alumnos-scroll .data-table,
-.table-profesores-scroll .data-table {
-    border-collapse: separate;
-    border-spacing: 0;
-    table-layout: fixed;
-}
-
-.table-control-scroll .data-table thead th,
-.table-clases-scroll .data-table thead th,
-.table-alumnos-scroll .data-table thead th,
-.table-profesores-scroll .data-table thead th {
-    top: 0;
-    z-index: 6;
-}
-
-.table-control-scroll .data-table thead,
-.table-control-scroll .data-table tbody tr,
-.table-clases-scroll .data-table thead,
-.table-clases-scroll .data-table tbody tr,
-.table-alumnos-scroll .data-table thead,
-.table-alumnos-scroll .data-table tbody tr,
-.table-profesores-scroll .data-table thead,
-.table-profesores-scroll .data-table tbody tr {
-    display: table;
+.table-clases-scroll .data-table {
+    min-width: 900px;
     width: 100%;
-    table-layout: fixed;
 }
 
-.table-control-scroll .data-table tbody,
-.table-clases-scroll .data-table tbody,
-.table-alumnos-scroll .data-table tbody,
-.table-profesores-scroll .data-table tbody {
+.table-clases-scroll .data-table thead {
+    display: block;
+    width: 100%;
+}
+
+.table-clases-scroll .data-table tbody {
     display: block;
     max-height: calc(85vh - 250px);
     overflow-y: auto;
+    overflow-x: hidden;
+    pointer-events: auto;
+}
+
+.table-clases-scroll .data-table thead tr,
+.table-clases-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 80px 180px 1fr 120px 100px;
+    width: 100%;
+}
+
+.table-control-scroll .data-table {
+    min-width: 850px;
+    width: 100%;
+}
+
+.table-control-scroll .data-table thead {
+    display: block;
+}
+
+.table-control-scroll .data-table tbody {
+    display: block;
+    max-height: calc(85vh - 250px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.table-control-scroll .data-table thead tr,
+.table-control-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 120px 80px 1fr 80px 180px 200px 110px;
+    width: 100%;
+    min-width: 850px;
+    align-items: center;
+}
+
+.table-control-scroll .data-table th,
+.table-control-scroll .data-table td {
+    min-width: 0;
+    padding: 10px 8px;
+    word-break: break-word;
+}
+
+.table-control-scroll .data-table th:nth-child(2),
+.table-control-scroll .data-table td:nth-child(2),
+.table-control-scroll .data-table th:nth-child(4),
+.table-control-scroll .data-table td:nth-child(4),
+.table-control-scroll .data-table th:nth-child(7),
+.table-control-scroll .data-table td:nth-child(7) {
+    text-align: center;
+}
+
+.table-control-scroll .data-table th:nth-child(1),
+.table-control-scroll .data-table td:nth-child(1),
+.table-control-scroll .data-table th:nth-child(3),
+.table-control-scroll .data-table td:nth-child(3),
+.table-control-scroll .data-table th:nth-child(5),
+.table-control-scroll .data-table td:nth-child(5),
+.table-control-scroll .data-table th:nth-child(6),
+.table-control-scroll .data-table td:nth-child(6) {
+    text-align: left;
 }
 
 .table-profesores-scroll .data-table,
@@ -277,8 +342,11 @@ body {
     min-width: 1180px;
 }
 
-.table-profesores-scroll .data-table thead {
+.table-profesores-scroll .data-table thead { display: block; }
+.table-profesores-scroll .data-table tbody {
     display: block;
+    max-height: calc(85vh - 250px);
+    overflow-y: auto;
 }
 
 .table-profesores-scroll .data-table thead tr,
@@ -286,30 +354,6 @@ body {
     display: grid;
     grid-template-columns: 70px 90px 90px 230px 300px 180px 120px 100px;
     width: 1180px;
-    table-layout: auto;
-}
-
-.table-profesores-scroll .data-table th,
-.table-profesores-scroll .data-table td {
-    min-width: 0;
-}
-
-.table-profesores-scroll .data-table th:nth-child(-n+3),
-.table-profesores-scroll .data-table td:nth-child(-n+3) {
-    text-align: center;
-}
-
-.table-profesores-scroll .data-table th:nth-child(n+4),
-.table-profesores-scroll .data-table td:nth-child(n+4) {
-    text-align: left;
-}
-
-.table-profesores-scroll .data-table td:nth-child(5) {
-    overflow-wrap: anywhere;
-}
-
-.table-profesores-scroll .data-table td:nth-child(6) {
-    white-space: nowrap;
 }
 
 .table-alumnos-scroll .data-table,
@@ -319,8 +363,11 @@ body {
     min-width: 1390px;
 }
 
-.table-alumnos-scroll .data-table thead {
+.table-alumnos-scroll .data-table thead { display: block; }
+.table-alumnos-scroll .data-table tbody {
     display: block;
+    max-height: calc(85vh - 250px);
+    overflow-y: auto;
 }
 
 .table-alumnos-scroll .data-table thead tr,
@@ -328,85 +375,12 @@ body {
     display: grid;
     grid-template-columns: 70px 60px 200px 130px 190px 110px 100px 180px 130px 220px;
     width: 1390px;
-    table-layout: auto;
 }
 
-.table-alumnos-scroll .data-table th,
-.table-alumnos-scroll .data-table td {
-    min-width: 0;
-}
-
-.table-alumnos-scroll .data-table th:nth-child(-n+2),
-.table-alumnos-scroll .data-table td:nth-child(-n+2) {
-    text-align: center;
-}
-
-.table-alumnos-scroll .data-table th:nth-child(n+3),
-.table-alumnos-scroll .data-table td:nth-child(n+3) {
-    text-align: left;
-}
-
-.table-control-scroll .data-table,
-.table-control-scroll .data-table thead,
-.table-control-scroll .data-table tbody tr,
-.table-control-scroll .data-table thead tr {
-    min-width: 1620px;
-    width: 1620px;
-}
-
-.table-control-scroll .data-table thead {
-    display: block;
-}
-
-.table-control-scroll .data-table thead tr,
-.table-control-scroll .data-table tbody tr {
-    display: grid;
-    grid-template-columns: 110px 90px 120px 260px 90px 300px 90px 190px 220px 130px 20px;
-    width: 1620px;
-    table-layout: auto;
-}
-
-.table-control-scroll .data-table tbody {
-    width: 1620px;
-    overflow-x: hidden;
-    scrollbar-gutter: stable;
-}
-
-.table-control-scroll .data-table th,
-.table-control-scroll .data-table td {
-    min-width: 0;
-}
-
-.table-control-scroll .data-table th:nth-child(2),
-.table-control-scroll .data-table td:nth-child(2),
-.table-control-scroll .data-table th:nth-child(3),
-.table-control-scroll .data-table td:nth-child(3),
-.table-control-scroll .data-table th:nth-child(5),
-.table-control-scroll .data-table td:nth-child(5),
-.table-control-scroll .data-table th:nth-child(7),
-.table-control-scroll .data-table td:nth-child(7),
-.table-control-scroll .data-table th:nth-child(10),
-.table-control-scroll .data-table td:nth-child(10) {
-    text-align: center;
-}
-
-.table-control-scroll .data-table th:nth-child(1),
-.table-control-scroll .data-table td:nth-child(1),
-.table-control-scroll .data-table th:nth-child(4),
-.table-control-scroll .data-table td:nth-child(4),
-.table-control-scroll .data-table th:nth-child(6),
-.table-control-scroll .data-table td:nth-child(6),
-.table-control-scroll .data-table th:nth-child(8),
-.table-control-scroll .data-table td:nth-child(8),
-.table-control-scroll .data-table th:nth-child(9),
-.table-control-scroll .data-table td:nth-child(9) {
-    text-align: left;
-}
-
+/* General Data Table Styling */
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 500px;
 }
 
 .data-table th, .data-table td {
@@ -433,10 +407,10 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
-/* AVATARES CIRCULARES PARA TABLAS DE ALUMNOS Y PROFESORES */
+/* AVATARES CIRCULARES */
 .tabla-avatar {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--accent);
@@ -495,13 +469,8 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
-.notification.success {
-    background: #16a34a;
-}
-
-.notification.error {
-    background: #dc2626;
-}
+.notification.success { background: #16a34a; }
+.notification.error { background: #dc2626; }
 
 .kpi-card {
     background-color: #1e293b;
@@ -621,4 +590,3 @@ body {
 .form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
 .form-row label { font-size:0.85rem; color:var(--text-muted); }
 .form-row input, .form-row textarea { padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:0.95rem; }
-
