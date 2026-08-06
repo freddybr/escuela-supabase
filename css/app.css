@@ -714,9 +714,15 @@ body {
     min-width: 1180px;
 }
 
+.table-profesores-scroll .data-table {
+    height: 100%;
+    table-layout: fixed;
+}
+
 .table-profesores-scroll .data-table thead { display: block; }
 .table-profesores-scroll .data-table tbody {
     display: block;
+    height: calc(100% - 48px);
     max-height: calc(100% - 48px);
     overflow-y: auto;
     overflow-x: hidden;
@@ -744,9 +750,15 @@ body {
     min-width: 1390px;
 }
 
+.table-alumnos-scroll .data-table {
+    height: 100%;
+    table-layout: fixed;
+}
+
 .table-alumnos-scroll .data-table thead { display: block; }
 .table-alumnos-scroll .data-table tbody {
     display: block;
+    height: calc(100% - 48px);
     max-height: calc(100% - 48px);
     overflow-y: auto;
     overflow-x: hidden;
