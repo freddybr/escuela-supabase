@@ -484,21 +484,90 @@ body {
     margin-top: 10px;
 }
 
+.filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+}
+
+.filters-bar > div {
+    flex: 1 1 180px;
+    min-width: 140px;
+}
+
+.filters-bar > div:first-child {
+    flex: 1 1 100%;
+}
+
+.filters-bar .form-control,
+.filters-bar .form-select {
+    padding: 8px 12px;
+    min-height: 34px;
+    font-size: 0.95rem;
+}
+
+.filters-bar-small .form-control,
+.filters-bar-small .form-select {
+    padding: 8px 10px;
+    min-height: 32px;
+}
+
+@media (max-width: 640px) {
+    .filters-bar {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .filters-bar > div {
+        flex: 1 1 100%;
+    }
+}
+
 .table-alumnos-scroll,
 .table-profesores-scroll {
-    max-height: calc(85vh - 210px);
+    height: calc(100vh - 210px);
+    max-height: calc(100vh - 210px);
     overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .table-clases-scroll {
-    max-height: calc(85vh - 210px);
+    height: calc(100vh - 270px);
+    max-height: calc(100vh - 270px);
     overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-alumnos-scroll::-webkit-scrollbar,
+.table-profesores-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.table-clases-scroll::-webkit-scrollbar:vertical,
+.table-control-scroll::-webkit-scrollbar:vertical {
+    display: none !important;
+    width: 0 !important;
+}
+
+.table-clases-scroll .data-table,
+.table-alumnos-scroll .data-table,
+.table-profesores-scroll .data-table,
+.table-control-scroll .data-table {
+    min-width: 900px;
+    width: 100%;
 }
 
 .table-clases-scroll .data-table {
     min-width: 900px;
-    width: 100%;
+    height: 100%;
+    table-layout: fixed;
 }
 
 .table-clases-scroll .data-table thead {
@@ -508,50 +577,69 @@ body {
 
 .table-clases-scroll .data-table tbody {
     display: block;
-    max-height: calc(100vh - 270px);
+    height: calc(100% - 44px);
+    max-height: calc(100% - 44px);
     overflow-y: auto;
     overflow-x: hidden;
-    pointer-events: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-clases-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .table-clases-scroll .data-table thead tr,
 .table-clases-scroll .data-table tbody tr {
     display: grid;
-    grid-template-columns: 80px 180px 1fr 120px 100px;
+    grid-template-columns: 80px 180px 1fr 180px;
     width: 100%;
 }
 
 /* --- MÓDULO EJECUCIÓN / CONTROL (Ajustado para Móvil) --- */
 .table-control-scroll {
-    max-height: calc(100vh - 360px); /* Espacio reservado para filtros apilados en móvil */
+    height: calc(100vh - 360px);
+    max-height: calc(100vh - 360px);
     overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .table-control-scroll .data-table {
     min-width: 850px;
     width: 100%;
+    table-layout: fixed;
+    height: 100%;
 }
 
-.table-control-scroll .data-table thead {
+.table-control-scroll .data-table thead,
+.table-control-scroll .data-table tbody {
     display: block;
     width: 100%;
 }
 
 .table-control-scroll .data-table tbody {
-    display: block;
-    max-height: calc(100vh - 410px); /* Ajuste dinámico para no empujar el scroll horizontal */
+    height: calc(100% - 52px);
+    min-height: calc(100% - 52px);
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-control-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .table-control-scroll .data-table thead tr,
 .table-control-scroll .data-table tbody tr {
-    display: grid;
-    grid-template-columns: 120px 80px 1fr 80px 180px 200px 110px;
+    display: table-row;
     width: 100%;
-    min-width: 850px;
-    align-items: center;
 }
 
 .table-control-scroll .data-table th,
@@ -559,6 +647,43 @@ body {
     min-width: 0;
     padding: 10px 8px;
     word-break: break-word;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.table-control-scroll .data-table th:nth-child(1),
+.table-control-scroll .data-table td:nth-child(1) {
+    width: 120px;
+}
+
+.table-control-scroll .data-table th:nth-child(2),
+.table-control-scroll .data-table td:nth-child(2) {
+    width: 80px;
+}
+
+.table-control-scroll .data-table th:nth-child(3),
+.table-control-scroll .data-table td:nth-child(3) {
+    width: 1fr;
+}
+
+.table-control-scroll .data-table th:nth-child(4),
+.table-control-scroll .data-table td:nth-child(4) {
+    width: 80px;
+}
+
+.table-control-scroll .data-table th:nth-child(5),
+.table-control-scroll .data-table td:nth-child(5) {
+    width: 180px;
+}
+
+.table-control-scroll .data-table th:nth-child(6),
+.table-control-scroll .data-table td:nth-child(6) {
+    width: 200px;
+}
+
+.table-control-scroll .data-table th:nth-child(7),
+.table-control-scroll .data-table td:nth-child(7) {
+    width: 110px;
 }
 
 .table-control-scroll .data-table th:nth-child(2),
@@ -592,8 +717,17 @@ body {
 .table-profesores-scroll .data-table thead { display: block; }
 .table-profesores-scroll .data-table tbody {
     display: block;
-    max-height: calc(85vh - 250px);
+    max-height: calc(100% - 48px);
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-profesores-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .table-profesores-scroll .data-table thead tr,
@@ -613,8 +747,17 @@ body {
 .table-alumnos-scroll .data-table thead { display: block; }
 .table-alumnos-scroll .data-table tbody {
     display: block;
-    max-height: calc(85vh - 250px);
+    max-height: calc(100% - 48px);
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-alumnos-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .table-alumnos-scroll .data-table thead tr,
@@ -686,12 +829,20 @@ body {
     .aside-overlay { display: none !important; }
     .app-main { padding: 40px; }
 
-    /* Restauración de altura de Ejecuciones en pantallas más anchas */
-    .table-control-scroll {
-        max-height: calc(100vh - 210px);
+    .table-alumnos-scroll,
+    .table-profesores-scroll {
+        height: calc(100vh - 220px);
+        max-height: calc(100vh - 220px);
     }
-    .table-control-scroll .data-table tbody {
-        max-height: calc(85vh - 250px);
+
+    .table-clases-scroll {
+        height: calc(100vh - 280px);
+        max-height: calc(100vh - 280px);
+    }
+
+    .table-control-scroll {
+        height: calc(100vh - 340px);
+        max-height: calc(100vh - 340px);
     }
 }
 
@@ -875,7 +1026,11 @@ body {
     width: 0 !important;
 }
 
-html, body, .app-main, .app-aside, .dashboard-container, tbody {
+html, body, .app-main, .app-aside, .dashboard-container, tbody,
+.table-alumnos-scroll,
+.table-profesores-scroll,
+.table-clases-scroll,
+.table-control-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
@@ -888,6 +1043,18 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody {
 .table-alumnos-scroll {
     scrollbar-width: auto !important;
     -ms-overflow-style: auto !important;
+}
+
+.table-clases-scroll::-webkit-scrollbar:horizontal,
+.table-control-scroll::-webkit-scrollbar:horizontal {
+    display: block !important;
+    height: 8px !important;
+}
+
+.table-clases-scroll::-webkit-scrollbar:vertical,
+.table-control-scroll::-webkit-scrollbar:vertical {
+    display: none !important;
+    width: 0 !important;
 }
 
 .table-responsive::-webkit-scrollbar:horizontal,

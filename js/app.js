@@ -873,8 +873,8 @@ async function cargarVistaClases() {
     let htmlTemplate = `
     ${renderHeaderSeccion('clases', 'Clases', 'Listado General de Clases.')}
 
-    <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
-        <div style="flex: 1; min-width: 200px;">
+    <div class="filters-bar filters-bar-small" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">
+        <div style="flex: 1 1 240px; min-width: 140px;">
             <input 
                 type="text" 
                 id="filter-search-clases" 
@@ -1809,8 +1809,8 @@ async function cargarVistaControl(filtrosPrevios = null) {
     let htmlTemplate = `
     ${renderHeaderSeccion('control', 'Ejecución', 'Control de ejecución de clases.')}
 
-    <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
-        <div style="flex: 1; min-width: 200px;">
+    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
+        <div style="flex: 1 1 100%; min-width: 140px;">
             <input type="text" id="filter-search" class="form-control" placeholder="Buscar Fecha, Clase o Profesor..." oninput="window.aplicarFiltrosControl()">
         </div>
         <div style="width: 180px;">
