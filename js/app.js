@@ -1296,8 +1296,21 @@ async function cargarVistaProfesores() {
 
     profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
 
+    const gradosDeProfesores = [...new Set(
+        profesores.map(p => gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado')).filter(Boolean)
+    )].sort();
+
     let htmlTemplate = `
         ${renderHeaderSeccion('profesores', 'Profesores', 'Información general y gestión de profesores.', `<div class="header-action-container"><button id="btn-nuevo-profesor" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
+
+        <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">
+            <div style="width: 220px;">
+                <select id="filter-grado-profesores" class="form-select" onchange="window.aplicarFiltrosProfesores()">
+                    <option value="">Todos los Grados</option>
+                    ${gradosDeProfesores.map(grado => `<option value="${grado}">${grado}</option>`).join('')}
+                </select>
+            </div>
+        </div>
 
         <div class="table-responsive table-profesores-scroll">
             <table class="data-table" id="tabla-profesores">
@@ -1322,7 +1335,7 @@ async function cargarVistaProfesores() {
                         const nombreGrado = gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado');
 
                         return `
-                        <tr data-id="${p.id}" class="fila-profesor" style="cursor: pointer;">
+                        <tr data-id="${p.id}" data-grado="${nombreGrado}" class="fila-profesor" style="cursor: pointer;">
                             <td><strong># ${p.id}</strong></td>
                             <td style="text-align: center;">
                                 <img src="${fotoUrl}" alt="${p.profe_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
@@ -1539,6 +1552,19 @@ function limpiarFormularioProfesor() {
     document.getElementById('profe-rol').value = '';
     document.getElementById('profe-nombre').focus();
 }
+
+window.aplicarFiltrosProfesores = function () {
+    const gradoSel = document.getElementById('filter-grado-profesores')?.value || '';
+    const filas = document.querySelectorAll('#tabla-profesores tbody tr');
+    filas.forEach(f => {
+        const gradoFila = f.getAttribute('data-grado') || '';
+        if (gradoSel === '' || gradoFila === gradoSel) {
+            f.style.display = '';
+        } else {
+            f.style.display = 'none';
+        }
+    });
+};
 
 // 8. Renderizar Tabla Asignaciones
 async function cargarVistaAsignaciones() {

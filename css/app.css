@@ -525,8 +525,8 @@ body {
 }
 
 .table-profesores-scroll {
-    height: calc(100vh - 210px);
-    max-height: calc(100vh - 210px);
+    height: calc(100vh - 270px);
+    max-height: calc(100vh - 270px);
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -850,8 +850,8 @@ body {
     .app-main { padding: 40px; }
 
     .table-profesores-scroll {
-        height: calc(100vh - 220px);
-        max-height: calc(100vh - 220px);
+        height: calc(100vh - 280px);
+        max-height: calc(100vh - 280px);
     }
 
     .table-alumnos-scroll {
