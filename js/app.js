@@ -975,8 +975,21 @@ async function cargarVistaAlumnos() {
 
     alumnos.sort((a, b) => (a.id || 0) - (b.id || 0));
 
+    const gradosDeAlumnos = [...new Set(
+        alumnos.map(a => gradosById.get(String(a.grado_id)) || (a.grado_id ? `#${a.grado_id}` : 'Sin grado')).filter(Boolean)
+    )].sort();
+
     let htmlTemplate = `
         ${renderHeaderSeccion('alumnos', 'Alumnos', 'Información general y gestión de alumnos.', `<div class="header-action-container"><button id="btn-nuevo-alumno" class="btn-header-action" aria-label="Añadir">+</button></div>`) }
+
+        <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">
+            <div style="width: 220px;">
+                <select id="filter-grado-alumnos" class="form-select" onchange="window.aplicarFiltrosAlumnos()">
+                    <option value="">Todos los Grados</option>
+                    ${gradosDeAlumnos.map(grado => `<option value="${grado}">${grado}</option>`).join('')}
+                </select>
+            </div>
+        </div>
 
         <div class="table-responsive table-alumnos-scroll">
             <table class="data-table" id="tabla-alumnos">
@@ -1003,7 +1016,7 @@ async function cargarVistaAlumnos() {
                         const nombreGrado = gradosById.get(String(a.grado_id)) || (a.grado_id ? `#${a.grado_id}` : 'Sin grado');
 
                         return `
-                        <tr data-id="${a.id}" class="fila-alumno" style="cursor: pointer;">
+                        <tr data-id="${a.id}" data-grado="${nombreGrado}" class="fila-alumno" style="cursor: pointer;">
                             <td><strong># ${a.id}</strong></td>
                             <td style="text-align: center;">
                                 <img src="${fotoUrl}" alt="${a.alumno_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Alumno&backgroundColor=0284c7'">
@@ -1243,6 +1256,19 @@ function limpiarFormularioAlumno() {
     document.getElementById('alumno-direccion').value = '';
     document.getElementById('alumno-nombre').focus();
 }
+
+window.aplicarFiltrosAlumnos = function () {
+    const gradoSel = document.getElementById('filter-grado-alumnos')?.value || '';
+    const filas = document.querySelectorAll('#tabla-alumnos tbody tr');
+    filas.forEach(f => {
+        const gradoFila = f.getAttribute('data-grado') || '';
+        if (gradoSel === '' || gradoFila === gradoSel) {
+            f.style.display = '';
+        } else {
+            f.style.display = 'none';
+        }
+    });
+};
 
 // 7. Renderizar Tabla Profesores
 async function cargarVistaProfesores() {

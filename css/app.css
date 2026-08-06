@@ -524,10 +524,18 @@ body {
     }
 }
 
-.table-alumnos-scroll,
 .table-profesores-scroll {
     height: calc(100vh - 210px);
     max-height: calc(100vh - 210px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-alumnos-scroll {
+    height: calc(100vh - 270px);
+    max-height: calc(100vh - 270px);
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -841,10 +849,14 @@ body {
     .aside-overlay { display: none !important; }
     .app-main { padding: 40px; }
 
-    .table-alumnos-scroll,
     .table-profesores-scroll {
         height: calc(100vh - 220px);
         max-height: calc(100vh - 220px);
+    }
+
+    .table-alumnos-scroll {
+        height: calc(100vh - 280px);
+        max-height: calc(100vh - 280px);
     }
 
     .table-clases-scroll {
