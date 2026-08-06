@@ -22,6 +22,37 @@ const navPerfil = document.getElementById('nav-perfil');
 const navDashboard = document.getElementById('nav-dashboard');
 const btnLogout = document.getElementById('btn-logout');
 
+const headerIcons = {
+    dashboard: `<svg class="header-icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`,
+    materias: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+    programas: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+    clases: `<svg class="header-icon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+    periodos: `<svg class="header-icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    asignaciones: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>`,
+    control: `<svg class="header-icon-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    asistencias: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    grados: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`,
+    alumnos: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    profesores: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    configuracion: `<svg class="header-icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33 1.82H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+    perfil: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+};
+
+function renderHeaderSeccion(key, titulo, subtitulo, acciones = '') {
+    return `
+        <div class="header-seccion">
+            <div class="header-seccion-main">
+                <span class="header-icon">${headerIcons[key] || ''}</span>
+                <div class="header-seccion-text">
+                    <h2>${titulo}</h2>
+                    <p>${subtitulo}</p>
+                </div>
+            </div>
+            ${acciones}
+        </div>
+    `;
+}
+
 // LOGOUT
 btnLogout.addEventListener('click', async () => {
     await supabase.auth.signOut();
@@ -195,10 +226,7 @@ navDashboard.addEventListener('click', () => {
 // VISTA DASHBOARD
 async function cargarVistaDashboard() {
     mainContent.innerHTML = `
-        <div class="header-seccion">
-            <h2>Panel Principal</h2>
-            <p>Bienvenido al Sistema de Gestión Académica.</p>
-        </div>
+        ${renderHeaderSeccion('dashboard', 'Panel Principal', 'Bienvenido al Sistema de Gestión Académica.')}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;">
             <div style="background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; color: #fff;">
                 <h3>📚 Materias</h3>
@@ -237,15 +265,7 @@ async function cargarVistaPeriodos() {
     const listaPeriodos = periodos || [];
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex; align-items:center; justify-content:space-between;">
-            <div>
-                <h2>Períodos</h2>
-                <p>Años académicos por período.</p>
-            </div>
-            <div>
-                <button id="btn-nuevo-periodo" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('periodos', 'Períodos', 'Años académicos por período.', `<div class="header-action-container"><button id="btn-nuevo-periodo" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
         <div class="table-responsive">
             <table class="data-table" id="tabla-periodos">
@@ -434,15 +454,7 @@ async function cargarVistaMaterias() {
     }
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div>
-                <h2>Materias</h2>
-                <p>Disciplinas académicas del diseño curricular.</p>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-                <button id="btn-nueva-materia" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('materias', 'Materias', 'Disciplinas académicas del diseño curricular.', `<div class="header-action-container"><button id="btn-nueva-materia" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
         <div class="table-responsive">
             <table class="data-table" id="tabla-materias">
                 <thead>
@@ -599,10 +611,7 @@ async function cargarVistaGrados() {
     }
 
     let htmlTemplate = `
-        <div class="header-seccion">
-            <h2>Grados</h2>
-            <p>Niveles educativos habilitados.</p>
-        </div>
+        ${renderHeaderSeccion('grados', 'Grados', 'Niveles educativos habilitados.')}
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -654,15 +663,7 @@ async function cargarVistaProgramas() {
     const opcionesMaterias = materias.map(m => `<option value="${m.id}">${m.materia_nombre}</option>`).join('');
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-                <h2>Programas</h2>
-                <p>Contenido de programas.</p>
-            </div>
-            <div>
-                <button id="btn-nuevo-programa" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('programas', 'Programas', 'Contenido de programas.', `<div class="header-action-container"><button id="btn-nuevo-programa" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
         <div class="table-responsive">
             <table class="data-table" id="tabla-programas">
                 <thead>
@@ -870,10 +871,7 @@ async function cargarVistaClases() {
     )].sort();
 
     let htmlTemplate = `
-    <div class="header-seccion">
-        <h2>Clases</h2>
-        <p>Listado General de Clases.</p>
-    </div>
+    ${renderHeaderSeccion('clases', 'Clases', 'Listado General de Clases.')}
 
     <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
         <div style="flex: 1; min-width: 200px;">
@@ -978,15 +976,7 @@ async function cargarVistaAlumnos() {
     alumnos.sort((a, b) => (a.id || 0) - (b.id || 0));
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-                <h2>Alumnos</h2>
-                <p>Información general y gestión de alumnos.</p>
-            </div>
-            <div>
-                <button id="btn-nuevo-alumno" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('alumnos', 'Alumnos', 'Información general y gestión de alumnos.', `<div class="header-action-container"><button id="btn-nuevo-alumno" class="btn-header-action" aria-label="Añadir">+</button></div>`) }
 
         <div class="table-responsive table-alumnos-scroll">
             <table class="data-table" id="tabla-alumnos">
@@ -1281,15 +1271,7 @@ async function cargarVistaProfesores() {
     profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-                <h2>Profesores</h2>
-                <p>Información general y gestión de profesores.</p>
-            </div>
-            <div>
-                <button id="btn-nuevo-profesor" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('profesores', 'Profesores', 'Información general y gestión de profesores.', `<div class="header-action-container"><button id="btn-nuevo-profesor" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
         <div class="table-responsive table-profesores-scroll">
             <table class="data-table" id="tabla-profesores">
@@ -1570,15 +1552,7 @@ async function cargarVistaAsignaciones() {
     ).join('');
 
     let htmlTemplate = `
-        <div class="header-seccion" style="display:flex; align-items:center; justify-content:space-between;">
-            <div>
-                <h2>Asignaciones</h2>
-                <p>Distribución de los programas entre los grados.</p>
-            </div>
-            <div>
-                <button id="btn-nueva-asignacion" class="btn-primary">➕ Añadir</button>
-            </div>
-        </div>
+        ${renderHeaderSeccion('asignaciones', 'Asignaciones', 'Distribución de los programas entre los grados.', `<div class="header-action-container"><button id="btn-nueva-asignacion" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
         <div class="table-responsive">
             <table class="data-table" id="tabla-asignaciones">
@@ -1833,10 +1807,7 @@ async function cargarVistaControl(filtrosPrevios = null) {
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
 
     let htmlTemplate = `
-    <div class="header-seccion">
-        <h2 id="titulo-control-header">Ejecución</h2>
-        <p>Control de ejecución de clases.</p>
-    </div>
+    ${renderHeaderSeccion('control', 'Ejecución', 'Control de ejecución de clases.')}
 
     <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
         <div style="flex: 1; min-width: 200px;">
@@ -2177,10 +2148,7 @@ async function cargarVistaAsistencias() {
     const profesoresUnicos = [...new Set(vista_asistencias.map(n => n.profesor).filter(Boolean))].sort();
 
     let htmlTemplate = `
-    <div class="header-seccion">
-        <h2>Asistencias</h2>
-        <p>Control y seguimiento de asistencias por clase.</p>
-    </div>
+    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Control y seguimiento de asistencias por clase.')}
 
     <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
         <div style="flex: 1; min-width: 200px;">
@@ -2311,51 +2279,42 @@ async function cargarVistaPerfil() {
     const { data: alumnos } = await supabase.from('alumnos').select('id, alumno_nombre, alumno_imagen_url');
 
     let htmlTemplate = `
-    <div class="header-seccion">
-        <h2>Gestión de Perfil</h2>
-        <p>Asignación y actualización de fotografías para Usuarios.</p>
-    </div>
+    ${renderHeaderSeccion('perfil', 'Gestión de Perfil', 'Asignación y actualización de fotografías para Usuarios.')}
 
-    <div style="max-width: 520px; margin: 20px auto; background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: #f8fafc;">
-        
-        <div style="margin-bottom: 22px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #cbd5e1; font-size: 0.9rem;">
-                👤 Tipo de Usuario
-            </label>
-            <select id="perfil-tipo-usuario" class="form-select" style="width: 100%; padding: 10px 14px; background-color: #0f172a; color: #f8fafc; border: 1px solid #475569; border-radius: 6px; font-size: 0.95rem; outline: none;" onchange="window.cambiarTipoPerfil()">
+    <div class="profile-panel">
+
+        <div class="profile-row">
+            <label for="perfil-tipo-usuario">Tipo de Usuario</label>
+            <select id="perfil-tipo-usuario" class="form-select" onchange="window.cambiarTipoPerfil()">
                 <option value="profesor">Profesor</option>
                 <option value="alumno">Alumno</option>
             </select>
         </div>
 
-        <div style="margin-bottom: 25px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #cbd5e1; font-size: 0.9rem;">
-                📋 Seleccionar Registro
-            </label>
-            <select id="perfil-id-registro" class="form-select" style="width: 100%; padding: 10px 14px; background-color: #0f172a; color: #f8fafc; border: 1px solid #475569; border-radius: 6px; font-size: 0.95rem; outline: none;" onchange="window.actualizarPreviewFoto()">
+        <div class="profile-row">
+            <label for="perfil-id-registro">Seleccionar Registro</label>
+            <select id="perfil-id-registro" class="form-select" onchange="window.actualizarPreviewFoto()">
             </select>
         </div>
 
-        <div style="text-align: center; margin: 30px 0; padding: 15px; background-color: #0f172a; border-radius: 8px; border: 1px dashed #475569;">
-            <p id="perfil-foto-titulo" style="margin: 0 0 12px 0; font-size: 0.85rem; color: #94a3b8; font-weight: 500;">Fotografía Actual</p>
-            <div style="position: relative; width: 110px; height: 110px; margin: 0 auto;">
-                <img id="perfil-foto-preview" src="https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5" alt="Vista previa" style="width: 110px; height: 110px; object-fit: cover; border-radius: 50%; border: 3px solid #6366f1; box-shadow: 0 4px 12px rgba(0,0,0,0.4);" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5'">
+        <div class="profile-avatar-card">
+            <p id="perfil-foto-titulo" class="profile-avatar-title">Fotografía Actual</p>
+            <div style="position: relative; width: 120px; height: 120px; margin: 0 auto;">
+                <img id="perfil-foto-preview" src="https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5" alt="Vista previa" class="profile-avatar-image" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5'">
             </div>
         </div>
 
-        <div style="margin-bottom: 25px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #cbd5e1; font-size: 0.9rem;">
-                🖼️ Seleccionar Nueva Foto
-            </label>
-            <input type="file" id="perfil-input-file" accept="image/*" class="form-control" style="width: 100%; padding: 8px; background-color: #0f172a; color: #cbd5e1; border: 1px solid #475569; border-radius: 6px; cursor: pointer;" onchange="window.previsualizarArchivoSeleccionado(this)">
+        <div class="profile-row">
+            <label for="perfil-input-file">Seleccionar Nueva Foto</label>
+            <input type="file" id="perfil-input-file" accept="image/*" class="form-control" onchange="window.previsualizarArchivoSeleccionado(this)">
         </div>
 
-        <div style="display: flex; gap: 12px;">
-            <button type="button" id="btn-cancelar-foto" class="btn" style="display: none; flex: 1; background: #334155; color: #cbd5e1; padding: 12px; border: 1px solid #475569; border-radius: 6px; font-weight: 600; font-size: 0.95rem; cursor: pointer;" onclick="window.limpiarSeleccionFoto()">
-                ✖️ Cancelar
+        <div class="profile-button-row">
+            <button type="button" id="btn-cancelar-foto" class="btn-secondary-alt" style="display: none;" onclick="window.limpiarSeleccionFoto()">
+                Cancelar
             </button>
-            <button type="button" class="btn" style="flex: 2; background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; padding: 12px; border: none; border-radius: 6px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);" onclick="window.ejecutarSubidaFoto()">
-                💾 Guardar Fotografía
+            <button type="button" class="btn-primary-alt" onclick="window.ejecutarSubidaFoto()">
+                Guardar Fotografía
             </button>
         </div>
     </div>
