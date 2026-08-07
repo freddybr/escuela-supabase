@@ -2155,13 +2155,24 @@ window.aplicarFiltrosControl = function () {
     });
 };
 
-// 10. Renderizar Tabla de Asistencias
+// 10. Renderizar Tabla de Asistencias y Gestión CRUD
+let editandoAsistenciaId = null;
+let listaAlumnosGlobal = [];
+let listaControlGlobal = [];
+let listaAsignacionesGlobal = [];
+
 async function cargarVistaAsistencias() {
     mainContent.innerHTML = '<div class="loading">Consultando Registro de Asistencias...</div>';
 
-    const [resVista, resAlumnos] = await Promise.all([
+    // Consulta de datos según el DDL exacto
+    const [resVista, resAlumnos, resControl, resClases, resAsignaciones, resProgramas, resGrados] = await Promise.all([
         supabase.from('vista_asistencias').select('*'),
-        supabase.from('alumnos').select('alumno_nombre, alumno_imagen_url')
+        supabase.from('alumnos').select('*'),
+        supabase.from('control').select('*'),
+        supabase.from('clases').select('id, clase_tema, programa_id'),
+        supabase.from('asignaciones').select('*').eq('asigna_estatus', 'Activa'),
+        supabase.from('programas').select('*'),
+        supabase.from('grados').select('*')
     ]);
 
     if (resVista.error) {
@@ -2170,19 +2181,70 @@ async function cargarVistaAsistencias() {
     }
 
     if (resAlumnos.error) {
-        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar fotos: ${resAlumnos.error.message}</p>`;
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar alumnos: ${resAlumnos.error.message}</p>`;
         return;
     }
 
+    if (resControl.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar registros de control: ${resControl.error.message}</p>`;
+        return;
+    }
+
+    if (resClases.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar clases: ${resClases.error.message}</p>`;
+        return;
+    }
+
+    if (resAsignaciones.error) {
+        mainContent.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</p>`;
+        return;
+    }
+
+    // Mapa de Clases para obtener el tema de cada clase
+    const mapaClases = new Map();
+    (resClases.data || []).forEach(c => {
+        mapaClases.set(c.id, c.clase_tema || 'Clase sin tema');
+    });
+
+    // Mapear y ORDENAR de menor a mayor por ID (#Control)
+    listaControlGlobal = (resControl.data || [])
+        .map(ctrl => ({
+            ...ctrl,
+            clase_tema: mapaClases.get(ctrl.clase_id) || 'Clase sin tema'
+        }))
+        .sort((a, b) => Number(a.id) - Number(b.id));
+
+    // Mapas para resolver nombres de programas y grados
+    const mapaProgramas = new Map();
+    (resProgramas.data || []).forEach(p => {
+        const nombreProg = p.programa_tema || p.prog_nombre || `Programa #${p.id}`;
+        mapaProgramas.set(p.id, nombreProg);
+    });
+
+    const mapaGrados = new Map();
+    (resGrados.data || []).forEach(g => {
+        const nombreGrado = g.grado_nombre || `Grado #${g.id}`;
+        mapaGrados.set(g.id, nombreGrado);
+    });
+
     const mapaFotosAlumnos = new Map();
-    resAlumnos.data.forEach(a => {
+    (resAlumnos.data || []).forEach(a => {
         if (a.alumno_nombre) {
             mapaFotosAlumnos.set(a.alumno_nombre.trim().toLowerCase(), a.alumno_imagen_url);
         }
     });
 
-    const vista_asistencias = resVista.data;
+    const vista_asistencias = resVista.data || [];
+    listaAlumnosGlobal = resAlumnos.data || [];
 
+    // Mapear asignaciones agregando los nombres resueltos
+    listaAsignacionesGlobal = (resAsignaciones.data || []).map(asig => ({
+        ...asig,
+        prog_nombre: mapaProgramas.get(asig.programa_id) || `Programa #${asig.programa_id}`,
+        grado_nombre: mapaGrados.get(asig.grado_id) || `Grado #${asig.grado_id}`
+    }));
+
+    // Ordenar vista asistencias por fecha y luego ID
     vista_asistencias.sort((a, b) => {
         if (!a.fecha && !b.fecha) return (a.asistencia_id || 0) - (b.asistencia_id || 0);
         if (!a.fecha) return 1;
@@ -2199,8 +2261,13 @@ async function cargarVistaAsistencias() {
     const gradosUnicos = [...new Set(vista_asistencias.map(n => n.grado).filter(Boolean))].sort();
     const profesoresUnicos = [...new Set(vista_asistencias.map(n => n.profesor).filter(Boolean))].sort();
 
+    // Generar opciones base para asignaciones
+    const opcionesAsignaciones = listaAsignacionesGlobal.map(asig => {
+        return `<option value="${asig.id}">${asig.prog_nombre} - ${asig.grado_nombre}</option>`;
+    }).join('');
+
     let htmlTemplate = `
-    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Control y seguimiento de asistencias por clase.')}
+    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Control y seguimiento de asistencias por clase.', `<div class="header-action-container"><button id="btn-nueva-asistencia" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
     <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
         <div style="flex: 1; min-width: 200px;">
@@ -2226,7 +2293,7 @@ async function cargarVistaAsistencias() {
         </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive table-asistencias-scroll">
         <table class="data-table" id="tabla-asistencias">
             <thead>
                 <tr>
@@ -2251,8 +2318,12 @@ async function cargarVistaAsistencias() {
                         ? urlImagenBase
                         : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.alumno || 'Alumno')}&backgroundColor=0284c7`;
 
+                    const evalLower = (n.evaluacion || '').toLowerCase();
+                    const evalBg = evalLower === 'excelente' ? '#0d6efd' : evalLower === 'bueno' ? '#198754' : evalLower === 'deficiente' ? '#dc3545' : '#6c757d';
+
                     return `
                     <tr 
+                      data-id="${n.asistencia_id}"
                       data-fecha="${n.fecha || ''}" 
                       data-alumno="${n.alumno || ''}"
                       data-profesor="${n.profesor || ''}" 
@@ -2260,23 +2331,25 @@ async function cargarVistaAsistencias() {
                       data-clase="${n.clase || ''}" 
                       data-grado="${n.grado || ''}"
                       data-observaciones="${n.observaciones || ''}"
+                      class="fila-asistencia"
+                      style="cursor: pointer;"
                     >
                         <td><strong># ${n.fecha ?? 'Sin fecha'}</strong></td>
                         <td style="text-align: center;">
                             <img src="${fotoUrl}" alt="${n.alumno || 'Alumno'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Alumno&backgroundColor=0284c7'">
                         </td>
-                        <td class="text-bold">${n.alumno}</td>
-                        <td><span class="text-light">${n.profesor}</span></td>
-                        <td><span class="text-light">${n.programa}</span></td>
-                        <td><span class="text-light">${n.clase}</span></td>
-                        <td class="text-bold">${n.grado}</td>
+                        <td class="text-bold">${n.alumno || '-'}</td>
+                        <td><span class="text-light">${n.profesor || '-'}</span></td>
+                        <td><span class="text-light">${n.programa || '-'}</span></td>
+                        <td><span class="text-light">${n.clase || '-'}</span></td>
+                        <td class="text-bold">${n.grado || '-'}</td>
                         <td>
                             <span class="badge" style="background-color: ${n.presente ? '#198754' : '#dc3545'}; color: #ffffff;">
                                 ${n.presente ? 'Presente' : 'Ausente'}
                             </span>
                         </td>
                         <td>
-                            <span class="badge" style="background-color: ${n.evaluacion === 'excelente' ? '#0d6efd' : n.evaluacion === 'bueno' ? '#198754' : n.evaluacion === 'deficiente' ? '#dc3545' : '#6c757d'}; color: #ffffff;">
+                            <span class="badge" style="background-color: ${evalBg}; color: #ffffff;">
                                 ${n.evaluacion ?? 'N/A'}
                             </span>
                         </td>
@@ -2287,10 +2360,367 @@ async function cargarVistaAsistencias() {
             </tbody>
         </table>
     </div>
+
+    <!-- Modal CRUD para Asistencias -->
+    <div id="modal-asistencia" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-asistencia-title">Asistencia</h3>
+                <button id="modal-asistencia-close" class="modal-close">✕</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <form id="form-asistencia">
+                    <div class="form-row" id="container-asist-asignacion">
+                        <label>1. Asignación Activa *</label>
+                        <select id="asist-asignacion-id" required>
+                            <option value="">-- Seleccionar Asignación --</option>
+                            ${opcionesAsignaciones}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>2. Registro de Control *</label>
+                        <select id="asist-control-id" required disabled>
+                            <option value="">-- Seleccione una Asignación primero --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>3. Alumno *</label>
+                        <select id="asist-alumno-id" required disabled>
+                            <option value="">-- Seleccione un Control primero --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Estatus de Asistencia</label>
+                        <select id="asist-presente" required disabled>
+                            <option value="true">Presente</option>
+                            <option value="false">Ausente</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Evaluación</label>
+                        <select id="asist-evaluacion" disabled>
+                            <option value="">-- Sin Evaluación --</option>
+                            <option value="Excelente">Excelente</option>
+                            <option value="Bueno">Bueno</option>
+                            <option value="Deficiente">Deficiente</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Observación</label>
+                        <textarea id="asist-observacion" rows="3" placeholder="Observaciones sobre la asistencia..." disabled></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancelar-asistencia" class="btn-secondary">Cancelar</button>
+                <button id="btn-limpiar-asistencia" class="btn-tertiary">Limpiar</button>
+                <button id="btn-borrar-asistencia" class="btn-danger" style="display:none;">Eliminar</button>
+                <button id="btn-guardar-asistencia" class="btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
     `;
 
     mainContent.innerHTML = htmlTemplate;
+
+    // Event listeners
+    document.getElementById('btn-nueva-asistencia').addEventListener('click', () => abrirModalAsistencia());
+
+    document.querySelectorAll('.fila-asistencia').forEach(row => {
+        row.addEventListener('click', async () => {
+            const id = row.getAttribute('data-id');
+            const { data: asistencia } = await supabase.from('asistencias').select('*').eq('id', id).maybeSingle();
+            if (asistencia) abrirModalAsistencia(asistencia);
+        });
+    });
+
+    // Manejadores en cascada
+    document.getElementById('asist-asignacion-id').addEventListener('change', alCambiarAsignacion);
+    document.getElementById('asist-control-id').addEventListener('change', alCambiarControl);
+
+    document.getElementById('modal-asistencia-close').addEventListener('click', () => cerrarModalAsistencia());
+    document.getElementById('btn-guardar-asistencia').addEventListener('click', guardarAsistencia);
+    document.getElementById('btn-borrar-asistencia').addEventListener('click', borrarAsistencia);
+    document.getElementById('btn-cancelar-asistencia').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsistencia(); });
+    document.getElementById('btn-limpiar-asistencia').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioAsistencia(); });
 }
+
+// Paso 1: Al cambiar Asignación desbloquea SOLO Registro Control y resetea Alumnos
+function alCambiarAsignacion() {
+    const asignacionId = document.getElementById('asist-asignacion-id').value;
+    const selControl = document.getElementById('asist-control-id');
+    const selAlumno = document.getElementById('asist-alumno-id');
+    const selPresente = document.getElementById('asist-presente');
+    const selEvaluacion = document.getElementById('asist-evaluacion');
+    const txtObservacion = document.getElementById('asist-observacion');
+
+    // Reiniciar y bloquear de inmediato los campos en cascada
+    selControl.value = '';
+    selAlumno.innerHTML = `<option value="">-- Seleccione un Control primero --</option>`;
+    selAlumno.value = '';
+    selAlumno.disabled = true;
+    selPresente.disabled = true;
+    selEvaluacion.disabled = true;
+    txtObservacion.disabled = true;
+
+    if (!asignacionId) {
+        selControl.innerHTML = `<option value="">-- Seleccione una Asignación primero --</option>`;
+        selControl.disabled = true;
+        return;
+    }
+
+    // Filtrar controles pertenecientes a esa asignación por `asigna_id`
+    const controlesFiltrados = listaControlGlobal.filter(c => String(c.asigna_id) === String(asignacionId));
+
+    if (controlesFiltrados.length > 0) {
+        selControl.innerHTML = `<option value="">-- Seleccionar Control --</option>` + 
+            controlesFiltrados.map(c => `<option value="${c.id}">Control #${c.id} - ${c.control_fecha || 'Sin fecha'} (${c.clase_tema})</option>`).join('');
+        selControl.disabled = false;
+    } else {
+        selControl.innerHTML = `<option value="">-- No hay controles registrados en esta asignación --</option>`;
+        selControl.disabled = true;
+    }
+}
+
+// Paso 2: Filtra estrictamente los alumnos por el grado_id de la asignación seleccionada
+async function alCambiarControl() {
+    const asignacionId = document.getElementById('asist-asignacion-id').value;
+    const controlId = document.getElementById('asist-control-id').value;
+    const selAlumno = document.getElementById('asist-alumno-id');
+    const selPresente = document.getElementById('asist-presente');
+    const selEvaluacion = document.getElementById('asist-evaluacion');
+    const txtObservacion = document.getElementById('asist-observacion');
+
+    if (!controlId || !asignacionId) {
+        selAlumno.innerHTML = `<option value="">-- Seleccione un Control primero --</option>`;
+        selAlumno.value = '';
+        selAlumno.disabled = true;
+        selPresente.disabled = true;
+        selEvaluacion.disabled = true;
+        txtObservacion.disabled = true;
+        return;
+    }
+
+    // 1. Obtener la asignación para conocer su grado_id
+    const asignacion = listaAsignacionesGlobal.find(a => String(a.id) === String(asignacionId));
+    
+    if (!asignacion || asignacion.grado_id === null || asignacion.grado_id === undefined) {
+        selAlumno.innerHTML = `<option value="">-- Asignación sin grado asociado --</option>`;
+        selAlumno.value = '';
+        selAlumno.disabled = true;
+        selPresente.disabled = true;
+        selEvaluacion.disabled = true;
+        txtObservacion.disabled = true;
+        return;
+    }
+
+    // 2. Filtrar alumnos cuyo grado_id sea exactamente igual al grado_id de la asignación
+    const targetGradoId = String(asignacion.grado_id);
+    const alumnosDelGrado = listaAlumnosGlobal.filter(a => a.grado_id !== null && a.grado_id !== undefined && String(a.grado_id) === targetGradoId);
+
+    // Si para ese grado no se han cargado alumnos en la base de datos
+    if (alumnosDelGrado.length === 0) {
+        selAlumno.innerHTML = `<option value="">-- No hay alumnos registrados para este grado --</option>`;
+        selAlumno.value = '';
+        selAlumno.disabled = true;
+        selPresente.disabled = true;
+        selEvaluacion.disabled = true;
+        txtObservacion.disabled = true;
+        return;
+    }
+
+    // 3. Consultar en la tabla 'asistencias' los alumnos ya procesados para este control_id
+    const { data: asistenciasExistentes } = await supabase
+        .from('asistencias')
+        .select('alumno_id')
+        .eq('control_id', controlId);
+
+    const idsRegistrados = new Set((asistenciasExistentes || []).map(a => String(a.alumno_id)));
+
+    // 4. Excluir alumnos que ya cuentan con asistencia grabada en este control
+    const alumnosDisponibles = alumnosDelGrado.filter(a => !idsRegistrados.has(String(a.id)));
+
+    if (alumnosDisponibles.length > 0) {
+        selAlumno.innerHTML = `<option value="">-- Seleccionar Alumno --</option>` + 
+            alumnosDisponibles.map(a => `<option value="${a.id}">${a.alumno_nombre || `Alumno #${a.id}`}</option>`).join('');
+        
+        selAlumno.disabled = false;
+        selPresente.disabled = false;
+        selEvaluacion.disabled = false;
+        txtObservacion.disabled = false;
+    } else {
+        selAlumno.innerHTML = `<option value="">-- Todos los alumnos de este grado ya tienen asistencia en este control --</option>`;
+        selAlumno.value = '';
+        selAlumno.disabled = true;
+        selPresente.disabled = true;
+        selEvaluacion.disabled = true;
+        txtObservacion.disabled = true;
+    }
+}
+
+function abrirModalAsistencia(asistencia = null) {
+    const modal = document.getElementById('modal-asistencia');
+    const titulo = document.getElementById('modal-asistencia-title');
+    const containerAsignacion = document.getElementById('container-asist-asignacion');
+    const selControl = document.getElementById('asist-control-id');
+    const selAlumno = document.getElementById('asist-alumno-id');
+    const selPresente = document.getElementById('asist-presente');
+    const selEvaluacion = document.getElementById('asist-evaluacion');
+    const txtObservacion = document.getElementById('asist-observacion');
+    const btnBorrar = document.getElementById('btn-borrar-asistencia');
+    const btnLimpiar = document.getElementById('btn-limpiar-asistencia');
+
+    if (asistencia) {
+        editandoAsistenciaId = asistencia.id;
+        titulo.textContent = `Editar Asistencia #${asistencia.id}`;
+        
+        if (containerAsignacion) containerAsignacion.style.display = 'none';
+
+        // En edición mostramos la lista completa deshabilitada
+        selControl.innerHTML = `<option value="">-- Seleccionar Control --</option>` + 
+            listaControlGlobal.map(c => `<option value="${c.id}">Control #${c.id} - ${c.control_fecha || 'Sin fecha'} (${c.clase_tema})</option>`).join('');
+        selAlumno.innerHTML = `<option value="">-- Seleccionar Alumno --</option>` + 
+            listaAlumnosGlobal.map(a => `<option value="${a.id}">${a.alumno_nombre || `Alumno #${a.id}`}</option>`).join('');
+
+        selControl.value = asistencia.control_id || '';
+        selAlumno.value = asistencia.alumno_id || '';
+        selPresente.value = asistencia.asist_presente !== undefined ? String(asistencia.asist_presente) : 'false';
+        selEvaluacion.value = asistencia.asist_evaluacion || '';
+        txtObservacion.value = asistencia.asist_observacion || '';
+
+        btnBorrar.style.display = '';
+        btnLimpiar.style.display = 'none';
+
+        selControl.disabled = true;
+        selAlumno.disabled = true;
+        selPresente.disabled = false;
+        selEvaluacion.disabled = false;
+        txtObservacion.disabled = false;
+    } else {
+        editandoAsistenciaId = null;
+        titulo.textContent = 'Nueva Asistencia';
+        
+        if (containerAsignacion) containerAsignacion.style.display = '';
+        limpiarFormularioAsistencia();
+
+        btnBorrar.style.display = 'none';
+        btnLimpiar.style.display = '';
+    }
+
+    modal.style.display = 'flex';
+}
+
+function cerrarModalAsistencia() {
+    const modal = document.getElementById('modal-asistencia');
+    modal.style.display = 'none';
+}
+
+function limpiarFormularioAsistencia() {
+    const selAsignacion = document.getElementById('asist-asignacion-id');
+    if (selAsignacion) selAsignacion.value = '';
+
+    document.getElementById('asist-presente').value = 'true';
+    document.getElementById('asist-evaluacion').value = '';
+    document.getElementById('asist-observacion').value = '';
+
+    // Reiniciar bloqueos en cadena
+    alCambiarAsignacion();
+}
+
+async function guardarAsistencia(e) {
+    e.preventDefault();
+    const control_id = document.getElementById('asist-control-id').value;
+    const alumno_id = document.getElementById('asist-alumno-id').value;
+    const asist_presente = document.getElementById('asist-presente').value === 'true';
+    const asist_evaluacion = document.getElementById('asist-evaluacion').value || null;
+    const asist_observacion = document.getElementById('asist-observacion').value.trim() || null;
+
+    if (!control_id || !alumno_id) {
+        mostrarMensaje('error', 'El Registro de Control y el Alumno son obligatorios');
+        return;
+    }
+
+    const payload = {
+        control_id: parseInt(control_id, 10),
+        alumno_id: parseInt(alumno_id, 10),
+        asist_presente: asist_presente,
+        asist_evaluacion: asist_evaluacion,
+        asist_observacion: asist_observacion
+    };
+
+    if (editandoAsistenciaId) {
+        const { error } = await supabase
+            .from('asistencias')
+            .update(payload)
+            .eq('id', editandoAsistenciaId);
+
+        if (error) { mostrarMensaje('error', 'Error al actualizar asistencia: ' + error.message); return; }
+        mostrarMensaje('success', 'Asistencia actualizada correctamente');
+    } else {
+        const { error } = await supabase
+            .from('asistencias')
+            .insert(payload);
+
+        if (error) { mostrarMensaje('error', 'Error al registrar asistencia: ' + error.message); return; }
+        mostrarMensaje('success', 'Asistencia registrada correctamente');
+    }
+
+    cerrarModalAsistencia();
+    cargarVistaAsistencias();
+}
+
+async function borrarAsistencia(e) {
+    e.preventDefault();
+    if (!editandoAsistenciaId) return;
+
+    if (!confirm(`¿Deseas eliminar el registro de asistencia #${editandoAsistenciaId}? Esta acción no se puede deshacer.`)) return;
+
+    const { error } = await supabase
+        .from('asistencias')
+        .delete()
+        .eq('id', editandoAsistenciaId);
+
+    if (error) { mostrarMensaje('error', 'Error al eliminar asistencia: ' + error.message); return; }
+    mostrarMensaje('success', 'Asistencia eliminada correctamente');
+
+    cerrarModalAsistencia();
+    cargarVistaAsistencias();
+}
+
+window.aplicarFiltrosAsistencias = function () {
+    const busqueda = (document.getElementById('filter-search-asist')?.value || '').toLowerCase();
+    const alumnoSel = document.getElementById('filter-alumno')?.value || '';
+    const gradoSel = document.getElementById('filter-grado-asist')?.value || '';
+    const profesorSel = document.getElementById('filter-profesor')?.value || '';
+
+    const filas = document.querySelectorAll('#tabla-asistencias tbody tr');
+
+    filas.forEach(f => {
+        const fecha = (f.getAttribute('data-fecha') || '').toLowerCase();
+        const alumno = f.getAttribute('data-alumno') || '';
+        const profesor = f.getAttribute('data-profesor') || '';
+        const programa = (f.getAttribute('data-programa') || '').toLowerCase();
+        const clase = (f.getAttribute('data-clase') || '').toLowerCase();
+        const grado = f.getAttribute('data-grado') || '';
+        const observaciones = (f.getAttribute('data-observaciones') || '').toLowerCase();
+
+        const coincideBusqueda = !busqueda || 
+            fecha.includes(busqueda) || 
+            programa.includes(busqueda) || 
+            clase.includes(busqueda) || 
+            observaciones.includes(busqueda);
+
+        const coincideAlumno = !alumnoSel || alumno === alumnoSel;
+        const coincideGrado = !gradoSel || grado === gradoSel;
+        const coincideProfesor = !profesorSel || profesor === profesorSel;
+
+        if (coincideBusqueda && coincideAlumno && coincideGrado && coincideProfesor) {
+            f.style.display = '';
+        } else {
+            f.style.display = 'none';
+        }
+    });
+};
 
 window.aplicarFiltrosAsistencias = function () {
     const textoBusqueda = (document.getElementById('filter-search-asist')?.value || '').toLowerCase();

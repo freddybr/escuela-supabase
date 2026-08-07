@@ -1054,7 +1054,9 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-alumnos-scroll,
 .table-profesores-scroll,
 .table-clases-scroll,
-.table-control-scroll {
+.table-control-scroll,
+.table-asistencias-scroll,
+.asistencias-table-container {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
@@ -1064,19 +1066,25 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-control-scroll,
 .table-clases-scroll,
 .table-profesores-scroll,
-.table-alumnos-scroll {
+.table-alumnos-scroll,
+.table-asistencias-scroll,
+.asistencias-table-container {
     scrollbar-width: auto !important;
     -ms-overflow-style: auto !important;
 }
 
 .table-clases-scroll::-webkit-scrollbar:horizontal,
-.table-control-scroll::-webkit-scrollbar:horizontal {
+.table-control-scroll::-webkit-scrollbar:horizontal,
+.table-asistencias-scroll::-webkit-scrollbar:horizontal,
+.asistencias-table-container::-webkit-scrollbar:horizontal {
     display: block !important;
     height: 8px !important;
 }
 
 .table-clases-scroll::-webkit-scrollbar:vertical,
-.table-control-scroll::-webkit-scrollbar:vertical {
+.table-control-scroll::-webkit-scrollbar:vertical,
+.table-asistencias-scroll::-webkit-scrollbar:vertical,
+.asistencias-table-container::-webkit-scrollbar:vertical {
     display: none !important;
     width: 0 !important;
 }
@@ -1085,7 +1093,9 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-control-scroll::-webkit-scrollbar:horizontal,
 .table-clases-scroll::-webkit-scrollbar:horizontal,
 .table-profesores-scroll::-webkit-scrollbar:horizontal,
-.table-alumnos-scroll::-webkit-scrollbar:horizontal {
+.table-alumnos-scroll::-webkit-scrollbar:horizontal,
+.table-asistencias-scroll::-webkit-scrollbar:horizontal,
+.asistencias-table-container::-webkit-scrollbar:horizontal {
     display: block !important;
     height: 8px !important;
 }
@@ -1102,4 +1112,74 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 
 ::-webkit-scrollbar-thumb:horizontal:hover {
     background: #94a3b8;
+}
+
+/* =========================================
+   SCROLL Y ALTURA - MÓDULO ASISTENCIAS (SCROLL ACTIVO / BARRA VERTICAL OCULTA)
+   ========================================= */
+
+.asistencias-view-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 430px);
+    max-height: calc(100vh - 430px);
+    width: 100%;
+    position: relative;
+}
+
+.asistencias-table-container,
+.table-asistencias-scroll {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    
+    /* Permite scroll en ambos ejes */
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+
+    /* Oculta la barra en Firefox */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* OCULTAR BARRA VERTICAL Y MANTENER HORIZONTAL (Chrome, Safari, Edge) */
+.asistencias-table-container::-webkit-scrollbar,
+.table-asistencias-scroll::-webkit-scrollbar {
+    width: 0px !important;
+    height: 8px !important;
+}
+
+.asistencias-table-container::-webkit-scrollbar-track:horizontal,
+.table-asistencias-scroll::-webkit-scrollbar-track:horizontal {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.asistencias-table-container::-webkit-scrollbar-thumb:horizontal,
+.table-asistencias-scroll::-webkit-scrollbar-thumb:horizontal {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.asistencias-table-container table,
+.table-asistencias-scroll table {
+    min-width: 1000px;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.asistencias-table-container thead th,
+.table-asistencias-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #ffffff;
+}
+
+@media (min-width: 768px) {
+    .asistencias-view-wrapper {
+        height: calc(100vh - 300px);
+        max-height: calc(100vh - 300px);
+    }
 }
