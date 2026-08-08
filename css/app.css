@@ -160,7 +160,7 @@ body {
     height: 100%;
     background: var(--bg-aside);
     color: white;
-    padding: 18px 14px;
+    padding: 10px 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -184,10 +184,10 @@ body {
 
 .menu-group-title {
     color: #64748b;
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin: 12px 0 4px 6px;
+    margin: 6px 0 2px 4px;
 }
 
 .menu-nav {
@@ -201,15 +201,16 @@ body {
     border: none;
     color: #94a3b8;
     text-align: left;
-    padding: 8px 12px;
-    font-size: 0.9rem;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+    min-height: 32px;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .menu-btn:hover, .menu-btn.active {
@@ -219,8 +220,8 @@ body {
 
 /* --- ESTILO PARA ICONOS VECTORIALES SVG --- */
 .menu-svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     stroke: currentColor;
     fill: none;
     stroke-width: 2;
@@ -1127,12 +1128,25 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
     position: relative;
 }
 
-.asistencias-table-container,
-.table-asistencias-scroll {
+.asistencias-table-container {
     flex: 1;
     width: 100%;
     height: 100%;
     max-height: 100%;
+    
+    /* Permite scroll en ambos ejes */
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+
+    /* Oculta la barra en Firefox */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table-asistencias-scroll {
+    width: 100%;
+    height: calc(100vh - 350px);
+    max-height: calc(100vh - 350px);
     
     /* Permite scroll en ambos ejes */
     overflow-x: auto !important;
@@ -1166,6 +1180,7 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-asistencias-scroll table {
     min-width: 1000px;
     width: 100%;
+    height: 100%;
     border-collapse: collapse;
 }
 
@@ -1183,3 +1198,147 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
         max-height: calc(100vh - 300px);
     }
 }
+
+/* =========================================================================
+   7. OPTIMIZACIONES DE DISEÑO RESPONSIVO Y MOBILE-FIRST
+   ========================================================================= */
+
+@media (max-width: 768px) {
+    /* Mejorar accesibilidad de botones y controles (mínimo 44px de target táctil) */
+    .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .btn-header-action {
+        padding: 10px 14px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    
+    .form-control, .form-select {
+        min-height: 44px;
+        font-size: 16px; /* Evita zoom automático en iOS */
+    }
+
+    /* Bloquear el scroll de la página principal para mantener fijos los filtros superiores */
+    .app-main:has(.table-profesores-scroll),
+    .app-main:has(.table-alumnos-scroll),
+    .app-main:has(.table-control-scroll),
+    .app-main:has(.table-asistencias-scroll) {
+        overflow: hidden !important;
+        height: calc(100vh - 64px) !important;
+        max-height: calc(100vh - 64px) !important;
+    }
+
+    /* Transformar tablas en tarjetas en dispositivos móviles (excluyendo la tabla de clases y contenedores con scroll de filtros) */
+    .table-responsive:not(.table-clases-scroll):not(.table-profesores-scroll):not(.table-alumnos-scroll):not(.table-control-scroll):not(.table-asistencias-scroll) {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin-top: 8px !important;
+        height: auto !important;
+        max-height: unset !important;
+        overflow: visible !important;
+    }
+
+    .asistencias-view-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .asistencias-table-container,
+    .table-asistencias-scroll {
+        height: calc(100vh - 430px) !important;
+        max-height: calc(100vh - 430px) !important;
+        overflow-y: hidden !important;
+    }
+
+    .data-table:not(#tabla-clases) {
+        border: none !important;
+        background: transparent !important;
+        width: 100% !important;
+        min-width: unset !important;
+        height: 100% !important;
+    }
+
+    .data-table:not(#tabla-clases) thead {
+        display: none !important;
+    }
+
+    /* Usamos la misma estructura de scroll interno que el módulo de Clases, desplazando en tbody y manteniendo la altura del contenedor fijo */
+    .data-table:not(#tabla-clases) tbody {
+        display: block !important;
+        height: calc(100% - 44px) !important;
+        max-height: calc(100% - 44px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important; /* Desplazamiento táctil fluido */
+        scrollbar-width: none !important; /* Firefox */
+        -ms-overflow-style: none !important; /* IE/Edge */
+    }
+
+    .data-table:not(#tabla-clases) tbody::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    .data-table:not(#tabla-clases) tr {
+        display: block !important;
+        background: #ffffff !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 12px !important;
+        padding: 14px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+        position: relative !important;
+        width: 100% !important;
+        min-width: unset !important;
+        max-width: unset !important;
+        height: auto !important;
+        margin-bottom: 12px !important; /* Espacio entre tarjetas */
+    }
+
+    .data-table:not(#tabla-clases) td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 16px !important;
+        padding: 10px 0 !important;
+        border: none !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        text-align: right !important;
+        font-size: 0.9rem !important;
+        width: 100% !important;
+        min-width: unset !important;
+        max-width: unset !important;
+        height: auto !important;
+    }
+
+    .data-table:not(#tabla-clases) td:last-child {
+        border-bottom: none !important;
+    }
+
+    /* Generación de etiquetas en tarjetas */
+    .data-table:not(#tabla-clases) td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+        margin-right: 15px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex-shrink: 0;
+        min-width: 110px; /* Evita que la etiqueta se encoja o apile verticalmente */
+    }
+
+    .data-table:not(#tabla-clases) td .tabla-avatar {
+        margin: 0 0 0 auto !important;
+    }
+
+    /* Formularios de una sola columna en móvil */
+    .form-row {
+        margin-bottom: 12px;
+    }
+}
+

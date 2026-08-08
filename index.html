@@ -31,32 +31,6 @@
         </div>
     </div>
 
-    <script type="module">
-        import { supabase } from './js/config.js';
-
-        const modal = document.getElementById('login-modal');
-        const btnShowLogin = document.getElementById('btn-show-login');
-        const btnCloseModal = document.getElementById('close-modal');
-        const loginForm = document.getElementById('login-form');
-        const errorMsg = document.getElementById('login-error');
-
-        btnShowLogin.addEventListener('click', () => modal.classList.remove('hidden'));
-        btnCloseModal.addEventListener('click', () => modal.classList.add('hidden'));
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                errorMsg.textContent = error.message;
-                errorMsg.classList.remove('hidden');
-            } else {
-                window.location.href = 'app.html';
-            }
-        });
-    </script>
+    <script type="module" src="./js/login.js"></script>
 </body>
 </html>
