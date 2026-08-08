@@ -13,7 +13,7 @@ export async function cargarVistaGrados(container) {
 
     let htmlTemplate = `
         ${renderHeaderSeccion('grados', 'Grados', 'Niveles educativos habilitados.')}
-        <div class="table-responsive">
+        <div class="table-responsive table-grados-scroll">
             <table class="data-table">
                 <thead>
                     <tr>

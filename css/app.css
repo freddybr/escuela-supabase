@@ -285,7 +285,10 @@ body {
 .btn-header-action {
     width: 38px;
     height: 38px;
-    border-radius: 999px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+    border-radius: 50%;
     border: 1px solid #d1d5db;
     background: var(--icon-bg);
     color: var(--icon-fg);
@@ -543,7 +546,11 @@ body {
     -ms-overflow-style: none;
 }
 
-.table-clases-scroll {
+.table-clases-scroll,
+.table-materias-scroll,
+.table-programas-scroll,
+.table-asignaciones-scroll,
+.table-grados-scroll {
     height: calc(100vh - 270px);
     max-height: calc(100vh - 270px);
     overflow-x: auto;
@@ -560,7 +567,11 @@ body {
 }
 
 .table-clases-scroll::-webkit-scrollbar:vertical,
-.table-control-scroll::-webkit-scrollbar:vertical {
+.table-control-scroll::-webkit-scrollbar:vertical,
+.table-materias-scroll::-webkit-scrollbar:vertical,
+.table-programas-scroll::-webkit-scrollbar:vertical,
+.table-asignaciones-scroll::-webkit-scrollbar:vertical,
+.table-grados-scroll::-webkit-scrollbar:vertical {
     display: none !important;
     width: 0 !important;
 }
@@ -573,17 +584,20 @@ body {
     width: 100%;
 }
 
+/* =========================================
+   BLOQUES DE GRID EXACTOS (CLASES, MATERIAS, PROGRAMAS, ASIGNACIONES, GRADOS)
+   ========================================= */
+
+/* --- CLASES (4 Columnas) --- */
 .table-clases-scroll .data-table {
     min-width: 900px;
     height: 100%;
     table-layout: fixed;
 }
-
 .table-clases-scroll .data-table thead {
     display: block;
     width: 100%;
 }
-
 .table-clases-scroll .data-table tbody {
     display: block;
     height: calc(100% - 44px);
@@ -593,13 +607,11 @@ body {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
-
 .table-clases-scroll .data-table tbody::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
 }
-
 .table-clases-scroll .data-table thead tr,
 .table-clases-scroll .data-table tbody tr {
     display: grid;
@@ -607,7 +619,135 @@ body {
     width: 100%;
 }
 
-/* --- MÓDULO EJECUCIÓN / CONTROL (Ajustado para Móvil) --- */
+/* --- GRADOS (4 Columnas - Ajustadas) --- */
+.table-grados-scroll .data-table {
+    min-width: 900px;
+    width: 100%;
+    height: 100%;
+    table-layout: fixed;
+}
+.table-grados-scroll .data-table thead {
+    display: block;
+    width: 100%;
+}
+.table-grados-scroll .data-table tbody {
+    display: block;
+    height: calc(100% - 44px);
+    max-height: calc(100% - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.table-grados-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+.table-grados-scroll .data-table thead tr,
+.table-grados-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 80px 150px 200px 1fr;
+    width: 100%;
+}
+
+/* --- MATERIAS (3 Columnas) --- */
+.table-materias-scroll .data-table {
+    min-width: 900px;
+    width: 100%;
+    height: 100%;
+    table-layout: fixed;
+}
+.table-materias-scroll .data-table thead {
+    display: block;
+    width: 100%;
+}
+.table-materias-scroll .data-table tbody {
+    display: block;
+    height: calc(100% - 44px);
+    max-height: calc(100% - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.table-materias-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+.table-materias-scroll .data-table thead tr,
+.table-materias-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 100px 250px 1fr;
+    width: 100%;
+}
+
+/* --- PROGRAMAS (6 Columnas) --- */
+.table-programas-scroll .data-table {
+    min-width: 1100px;
+    width: 100%;
+    height: 100%;
+    table-layout: fixed;
+}
+.table-programas-scroll .data-table thead {
+    display: block;
+    width: 100%;
+}
+.table-programas-scroll .data-table tbody {
+    display: block;
+    height: calc(100% - 44px);
+    max-height: calc(100% - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.table-programas-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+.table-programas-scroll .data-table thead tr,
+.table-programas-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 80px 180px 250px 1fr 150px 120px;
+    width: 100%;
+}
+
+/* --- ASIGNACIONES (8 Columnas) --- */
+.table-asignaciones-scroll .data-table {
+    min-width: 1200px;
+    width: 100%;
+    height: 100%;
+    table-layout: fixed;
+}
+.table-asignaciones-scroll .data-table thead {
+    display: block;
+    width: 100%;
+}
+.table-asignaciones-scroll .data-table tbody {
+    display: block;
+    height: calc(100% - 44px);
+    max-height: calc(100% - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.table-asignaciones-scroll .data-table tbody::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+.table-asignaciones-scroll .data-table thead tr,
+.table-asignaciones-scroll .data-table tbody tr {
+    display: grid;
+    grid-template-columns: 60px 80px 250px 120px 100px 120px 1fr 100px;
+    width: 100%;
+}
+
+/* --- MÓDULO EJECUCIÓN / CONTROL (Ajustado para Desktop) --- */
 .table-control-scroll {
     height: calc(100vh - 360px);
     max-height: calc(100vh - 360px);
@@ -618,19 +758,19 @@ body {
 }
 
 .table-control-scroll .data-table {
-    min-width: 850px;
+    min-width: 1100px; /* Incrementado para evitar que el texto colapse */
     width: 100%;
     table-layout: fixed;
     height: 100%;
 }
 
-.table-control-scroll .data-table thead,
-.table-control-scroll .data-table tbody {
+.table-control-scroll .data-table thead {
     display: block;
     width: 100%;
 }
 
 .table-control-scroll .data-table tbody {
+    display: block;
     height: calc(100% - 52px);
     min-height: calc(100% - 52px);
     overflow-y: auto;
@@ -647,60 +787,28 @@ body {
 
 .table-control-scroll .data-table thead tr,
 .table-control-scroll .data-table tbody tr {
-    display: table-row;
+    display: grid;
+    /* Ajuste exacto para Ejecución (Control). La columna 3 (Clase) ahora tiene 350px y Observaciones toma el 1fr restante */
+    grid-template-columns: 120px 80px 350px 90px 200px 1fr 110px; 
     width: 100%;
 }
 
 .table-control-scroll .data-table th,
 .table-control-scroll .data-table td {
-    min-width: 0;
     padding: 10px 8px;
     word-break: break-word;
-    display: table-cell;
-    vertical-align: middle;
+    display: flex;
+    align-items: center;
 }
 
-.table-control-scroll .data-table th:nth-child(1),
-.table-control-scroll .data-table td:nth-child(1) {
-    width: 120px;
-}
-
-.table-control-scroll .data-table th:nth-child(2),
-.table-control-scroll .data-table td:nth-child(2) {
-    width: 80px;
-}
-
-.table-control-scroll .data-table th:nth-child(3),
-.table-control-scroll .data-table td:nth-child(3) {
-    width: 1fr;
-}
-
-.table-control-scroll .data-table th:nth-child(4),
-.table-control-scroll .data-table td:nth-child(4) {
-    width: 80px;
-}
-
-.table-control-scroll .data-table th:nth-child(5),
-.table-control-scroll .data-table td:nth-child(5) {
-    width: 180px;
-}
-
-.table-control-scroll .data-table th:nth-child(6),
-.table-control-scroll .data-table td:nth-child(6) {
-    width: 200px;
-}
-
-.table-control-scroll .data-table th:nth-child(7),
-.table-control-scroll .data-table td:nth-child(7) {
-    width: 110px;
-}
-
+/* Alineaciones específicas para Ejecución */
 .table-control-scroll .data-table th:nth-child(2),
 .table-control-scroll .data-table td:nth-child(2),
 .table-control-scroll .data-table th:nth-child(4),
 .table-control-scroll .data-table td:nth-child(4),
 .table-control-scroll .data-table th:nth-child(7),
 .table-control-scroll .data-table td:nth-child(7) {
+    justify-content: center;
     text-align: center;
 }
 
@@ -712,6 +820,7 @@ body {
 .table-control-scroll .data-table td:nth-child(5),
 .table-control-scroll .data-table th:nth-child(6),
 .table-control-scroll .data-table td:nth-child(6) {
+    justify-content: flex-start;
     text-align: left;
 }
 
@@ -720,7 +829,7 @@ body {
 .table-profesores-scroll .data-table thead,
 .table-profesores-scroll .data-table tbody tr,
 .table-profesores-scroll .data-table thead tr {
-    min-width: 1180px;
+    min-width: 1240px; 
 }
 
 .table-profesores-scroll .data-table {
@@ -748,8 +857,8 @@ body {
 .table-profesores-scroll .data-table thead tr,
 .table-profesores-scroll .data-table tbody tr {
     display: grid;
-    grid-template-columns: 70px 90px 90px 230px 300px 180px 120px 100px;
-    width: 1180px;
+    grid-template-columns: 70px 90px 150px 230px 300px 180px 120px 100px;
+    width: 1240px;
 }
 
 .table-alumnos-scroll .data-table,
@@ -860,7 +969,11 @@ body {
         max-height: calc(100vh - 280px);
     }
 
-    .table-clases-scroll {
+    .table-clases-scroll,
+    .table-materias-scroll,
+    .table-programas-scroll,
+    .table-asignaciones-scroll,
+    .table-grados-scroll {
         height: calc(100vh - 280px);
         max-height: calc(100vh - 280px);
     }
@@ -1055,6 +1168,10 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-alumnos-scroll,
 .table-profesores-scroll,
 .table-clases-scroll,
+.table-materias-scroll,
+.table-programas-scroll,
+.table-asignaciones-scroll,
+.table-grados-scroll,
 .table-control-scroll,
 .table-asistencias-scroll,
 .asistencias-table-container {
@@ -1066,6 +1183,10 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 .table-responsive,
 .table-control-scroll,
 .table-clases-scroll,
+.table-materias-scroll,
+.table-programas-scroll,
+.table-asignaciones-scroll,
+.table-grados-scroll,
 .table-profesores-scroll,
 .table-alumnos-scroll,
 .table-asistencias-scroll,
@@ -1076,29 +1197,27 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
 
 .table-clases-scroll::-webkit-scrollbar:horizontal,
 .table-control-scroll::-webkit-scrollbar:horizontal,
+.table-materias-scroll::-webkit-scrollbar:horizontal,
+.table-programas-scroll::-webkit-scrollbar:horizontal,
+.table-asignaciones-scroll::-webkit-scrollbar:horizontal,
+.table-grados-scroll::-webkit-scrollbar:horizontal,
 .table-asistencias-scroll::-webkit-scrollbar:horizontal,
-.asistencias-table-container::-webkit-scrollbar:horizontal {
+.asistencias-table-container::-webkit-scrollbar:horizontal,
+.table-responsive::-webkit-scrollbar:horizontal {
     display: block !important;
     height: 8px !important;
 }
 
 .table-clases-scroll::-webkit-scrollbar:vertical,
 .table-control-scroll::-webkit-scrollbar:vertical,
+.table-materias-scroll::-webkit-scrollbar:vertical,
+.table-programas-scroll::-webkit-scrollbar:vertical,
+.table-asignaciones-scroll::-webkit-scrollbar:vertical,
+.table-grados-scroll::-webkit-scrollbar:vertical,
 .table-asistencias-scroll::-webkit-scrollbar:vertical,
 .asistencias-table-container::-webkit-scrollbar:vertical {
     display: none !important;
     width: 0 !important;
-}
-
-.table-responsive::-webkit-scrollbar:horizontal,
-.table-control-scroll::-webkit-scrollbar:horizontal,
-.table-clases-scroll::-webkit-scrollbar:horizontal,
-.table-profesores-scroll::-webkit-scrollbar:horizontal,
-.table-alumnos-scroll::-webkit-scrollbar:horizontal,
-.table-asistencias-scroll::-webkit-scrollbar:horizontal,
-.asistencias-table-container::-webkit-scrollbar:horizontal {
-    display: block !important;
-    height: 8px !important;
 }
 
 ::-webkit-scrollbar-track:horizontal {
@@ -1224,14 +1343,18 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
     .app-main:has(.table-profesores-scroll),
     .app-main:has(.table-alumnos-scroll),
     .app-main:has(.table-control-scroll),
-    .app-main:has(.table-asistencias-scroll) {
+    .app-main:has(.table-asistencias-scroll),
+    .app-main:has(.table-materias-scroll),
+    .app-main:has(.table-programas-scroll),
+    .app-main:has(.table-asignaciones-scroll),
+    .app-main:has(.table-grados-scroll) {
         overflow: hidden !important;
         height: calc(100vh - 64px) !important;
         max-height: calc(100vh - 64px) !important;
     }
 
-    /* Transformar tablas en tarjetas en dispositivos móviles (excluyendo la tabla de clases y contenedores con scroll de filtros) */
-    .table-responsive:not(.table-clases-scroll):not(.table-profesores-scroll):not(.table-alumnos-scroll):not(.table-control-scroll):not(.table-asistencias-scroll) {
+    /* Transformar tablas en tarjetas en dispositivos móviles */
+    .table-responsive:not(.table-clases-scroll):not(.table-profesores-scroll):not(.table-alumnos-scroll):not(.table-control-scroll):not(.table-asistencias-scroll):not(.table-materias-scroll):not(.table-programas-scroll):not(.table-asignaciones-scroll):not(.table-grados-scroll) {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -1341,4 +1464,3 @@ html, body, .app-main, .app-aside, .dashboard-container, tbody,
         margin-bottom: 12px;
     }
 }
-

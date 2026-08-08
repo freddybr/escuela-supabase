@@ -29,7 +29,7 @@ export async function cargarVistaProgramas(container) {
 
     let htmlTemplate = `
         ${renderHeaderSeccion('programas', 'Programas', 'Contenido de programas.', `<div class="header-action-container"><button id="btn-nuevo-programa" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
-        <div class="table-responsive">
+        <div class="table-responsive table-programas-scroll">
             <table class="data-table" id="tabla-programas">
                 <thead>
                     <tr>

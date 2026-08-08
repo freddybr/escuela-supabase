@@ -16,7 +16,7 @@ export async function cargarVistaMaterias(container) {
 
     let htmlTemplate = `
         ${renderHeaderSeccion('materias', 'Materias', 'Disciplinas académicas del diseño curricular.', `<div class="header-action-container"><button id="btn-nueva-materia" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
-        <div class="table-responsive">
+        <div class="table-responsive table-clases-scroll">
             <table class="data-table" id="tabla-materias">
                 <thead>
                     <tr>

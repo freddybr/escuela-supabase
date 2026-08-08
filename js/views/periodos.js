@@ -19,7 +19,7 @@ export async function cargarVistaPeriodos(container) {
     let htmlTemplate = `
         ${renderHeaderSeccion('periodos', 'Períodos', 'Años académicos por período.', `<div class="header-action-container"><button id="btn-nuevo-periodo" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
-        <div class="table-responsive">
+        <div class="table-responsive table-clases-scroll">
             <table class="data-table" id="tabla-periodos">
                 <thead>
                     <tr>
