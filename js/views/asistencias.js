@@ -321,9 +321,9 @@ export async function cargarVistaAsistencias(container) {
             const coincideProfesor = !profesorSel || profesor === profesorSel;
 
             if (coincideTexto && coincideAlumno && coincideGrado && coincideProfesor) {
-                row.style.display = '';
+                row.style.removeProperty('display');
             } else {
-                row.style.display = 'none';
+                row.style.setProperty('display', 'none', 'important');
             }
         });
     };

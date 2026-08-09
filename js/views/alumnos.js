@@ -179,9 +179,9 @@ export async function cargarVistaAlumnos(container) {
         filas.forEach(f => {
             const gradoFila = f.getAttribute('data-grado') || '';
             if (gradoSel === '' || gradoFila === gradoSel) {
-                f.style.display = '';
+                f.style.removeProperty('display');
             } else {
-                f.style.display = 'none';
+                f.style.setProperty('display', 'none', 'important');
             }
         });
     });

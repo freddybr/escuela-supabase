@@ -215,9 +215,9 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
             const coincideEstatus = !estatusSel || estatus === estatusSel;
 
             if (coincideTexto && coincideGrado && coincidePrograma && coincideEstatus) {
-                row.style.display = '';
+                row.style.removeProperty('display');
             } else {
-                row.style.display = 'none';
+                row.style.setProperty('display', 'none', 'important');
             }
         });
     };
