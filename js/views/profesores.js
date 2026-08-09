@@ -133,7 +133,6 @@ export async function cargarVistaProfesores(container) {
                 </div>
                 <div class="modal-footer">
                     <button id="btn-cancelar-profesor" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-profesor" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-profesor" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-profesor" class="btn-primary">Guardar</button>
                 </div>
@@ -157,7 +156,6 @@ export async function cargarVistaProfesores(container) {
     document.getElementById('btn-guardar-profesor').addEventListener('click', guardarProfesor);
     document.getElementById('btn-borrar-profesor').addEventListener('click', borrarProfesor);
     document.getElementById('btn-cancelar-profesor').addEventListener('click', (e) => { e.preventDefault(); cerrarModalProfesor(); });
-    document.getElementById('btn-limpiar-profesor').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioProfesor(); });
 
     const filterGrado = document.getElementById('filter-grado-profesores');
     filterGrado?.addEventListener('change', () => {

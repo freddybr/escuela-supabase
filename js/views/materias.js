@@ -58,7 +58,6 @@ export async function cargarVistaMaterias(container) {
                 </div>
                 <div class="modal-footer">
                     <button id="btn-cancelar-materia" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-materia" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-materia" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-materia" class="btn-primary">Guardar</button>
                 </div>
@@ -81,7 +80,6 @@ export async function cargarVistaMaterias(container) {
     document.getElementById('btn-guardar-materia').addEventListener('click', guardarMateria);
     document.getElementById('btn-borrar-materia').addEventListener('click', borrarMateria);
     document.getElementById('btn-cancelar-materia').addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalMateria(); });
-    document.getElementById('btn-limpiar-materia').addEventListener('click', (ev) => { ev.preventDefault(); limpiarFormularioMateria(); });
 }
 
 function abrirModalMateria(materia = null) {

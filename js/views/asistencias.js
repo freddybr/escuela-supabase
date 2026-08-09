@@ -260,7 +260,6 @@ export async function cargarVistaAsistencias(container) {
             </div>
             <div class="modal-footer">
                 <button id="btn-cancelar-asistencia" class="btn-secondary">Cancelar</button>
-                <button id="btn-limpiar-asistencia" class="btn-tertiary">Limpiar</button>
                 <button id="btn-borrar-asistencia" class="btn-danger" style="display:none;">Eliminar</button>
                 <button id="btn-guardar-asistencia" class="btn-primary">Guardar</button>
             </div>
@@ -289,7 +288,6 @@ export async function cargarVistaAsistencias(container) {
     document.getElementById('btn-guardar-asistencia').addEventListener('click', guardarAsistencia);
     document.getElementById('btn-borrar-asistencia').addEventListener('click', borrarAsistencia);
     document.getElementById('btn-cancelar-asistencia').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsistencia(); });
-    document.getElementById('btn-limpiar-asistencia').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioAsistencia(); });
 
     // Filtros programáticos
     const inputSearch = document.getElementById('filter-search-asist');
@@ -453,7 +451,6 @@ function abrirModalAsistencia(asistencia = null) {
     const selEvaluacion = document.getElementById('asist-evaluacion');
     const txtObservacion = document.getElementById('asist-observacion');
     const btnBorrar = document.getElementById('btn-borrar-asistencia');
-    const btnLimpiar = document.getElementById('btn-limpiar-asistencia');
 
     if (asistencia) {
         editandoAsistenciaId = asistencia.id;
@@ -474,7 +471,6 @@ function abrirModalAsistencia(asistencia = null) {
         txtObservacion.value = asistencia.asist_observacion || '';
 
         btnBorrar.style.display = '';
-        btnLimpiar.style.display = 'none';
 
         selControl.disabled = true;
         selAlumno.disabled = true;
@@ -489,7 +485,6 @@ function abrirModalAsistencia(asistencia = null) {
         limpiarFormularioAsistencia();
 
         btnBorrar.style.display = 'none';
-        btnLimpiar.style.display = '';
     }
 
     modal.style.display = 'flex';

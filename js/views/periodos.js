@@ -71,7 +71,6 @@ export async function cargarVistaPeriodos(container) {
                 </div>
                 <div class="modal-footer">
                     <button id="btn-cancelar-periodo" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-periodo" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-periodo" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-periodo" class="btn-primary">Guardar</button>
                 </div>
@@ -95,7 +94,6 @@ export async function cargarVistaPeriodos(container) {
     document.getElementById('btn-guardar-periodo').addEventListener('click', guardarPeriodo);
     document.getElementById('btn-borrar-periodo').addEventListener('click', borrarPeriodo);
     document.getElementById('btn-cancelar-periodo').addEventListener('click', (e) => { e.preventDefault(); cerrarModalPeriodo(); });
-    document.getElementById('btn-limpiar-periodo').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioPeriodo(); });
 }
 
 function abrirModalPeriodo(periodo = null) {

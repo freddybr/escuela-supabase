@@ -143,10 +143,8 @@ export async function cargarVistaAlumnos(container) {
                             <textarea id="alumno-direccion" rows="2" placeholder="Dirección de residencia"></textarea>
                         </div>
                     </form>
-                </div>
-                <div class="modal-footer">
+                       <div class="modal-footer">
                     <button id="btn-cancelar-alumno" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-alumno" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-alumno" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-alumno" class="btn-primary">Guardar</button>
                 </div>
@@ -170,7 +168,6 @@ export async function cargarVistaAlumnos(container) {
     document.getElementById('btn-guardar-alumno').addEventListener('click', guardarAlumno);
     document.getElementById('btn-borrar-alumno').addEventListener('click', borrarAlumno);
     document.getElementById('btn-cancelar-alumno').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAlumno(); });
-    document.getElementById('btn-limpiar-alumno').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioAlumno(); });
 
     const filterGrado = document.getElementById('filter-grado-alumnos');
     filterGrado?.addEventListener('change', () => {

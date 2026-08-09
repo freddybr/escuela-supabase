@@ -124,7 +124,6 @@ export async function cargarVistaAsignaciones(container) {
                 </div>
                 <div class="modal-footer">
                     <button id="btn-cancelar-asignacion" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-asignacion" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-asignacion" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-asignacion" class="btn-primary">Guardar</button>
                 </div>
@@ -150,7 +149,6 @@ export async function cargarVistaAsignaciones(container) {
     document.getElementById('btn-guardar-asignacion').addEventListener('click', guardarAsignacion);
     document.getElementById('btn-borrar-asignacion').addEventListener('click', borrarAsignacion);
     document.getElementById('btn-cancelar-asignacion').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsignacion(); });
-    document.getElementById('btn-limpiar-asignacion').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioAsignacion(); });
 }
 
 function abrirModalAsignacion(asignacion = null) {

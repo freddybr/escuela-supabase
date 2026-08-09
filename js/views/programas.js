@@ -102,7 +102,6 @@ export async function cargarVistaProgramas(container) {
                 </div>
                 <div class="modal-footer">
                     <button id="btn-cancelar-programa" class="btn-secondary">Cancelar</button>
-                    <button id="btn-limpiar-programa" class="btn-tertiary">Limpiar</button>
                     <button id="btn-borrar-programa" class="btn-danger" style="display:none;">Eliminar</button>
                     <button id="btn-guardar-programa" class="btn-primary">Guardar</button>
                 </div>
@@ -125,7 +124,6 @@ export async function cargarVistaProgramas(container) {
     document.getElementById('btn-guardar-programa').addEventListener('click', guardarPrograma);
     document.getElementById('btn-borrar-programa').addEventListener('click', borrarPrograma);
     document.getElementById('btn-cancelar-programa').addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalPrograma(); });
-    document.getElementById('btn-limpiar-programa').addEventListener('click', (ev) => { ev.preventDefault(); limpiarFormularioPrograma(); });
 }
 
 function abrirModalPrograma(programa = null) {

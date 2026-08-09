@@ -169,7 +169,6 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
             </div>
             <div class="modal-footer">
                 <button id="btn-cancelar-control" class="btn-secondary">Cancelar</button>
-                <button id="btn-limpiar-control" class="btn-tertiary">Limpiar</button>
                 <button id="btn-guardar-control" class="btn-primary">Guardar Cambios</button>
             </div>
         </div>
@@ -259,7 +258,6 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     document.getElementById('modal-control-close').addEventListener('click', () => cerrarModalControl());
     document.getElementById('btn-guardar-control').addEventListener('click', guardarControl);
     document.getElementById('btn-cancelar-control').addEventListener('click', (e) => { e.preventDefault(); cerrarModalControl(); });
-    document.getElementById('btn-limpiar-control').addEventListener('click', (e) => { e.preventDefault(); limpiarFormularioControl(); });
 }
 
 function obtenerEstadoFiltros() {
