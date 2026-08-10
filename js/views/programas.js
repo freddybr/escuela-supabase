@@ -48,12 +48,12 @@ export async function cargarVistaProgramas(container) {
                         <tr data-id="${p.id}" class="fila-programa" style="cursor: pointer;">
                             <td data-label="ID"><strong># ${p.id}</strong></td>
                             <td data-label="Materia" class="text-bold">${nombreMateria}</td>
-                            <td data-label="Programa" class="text-bold">${p.programa_tema}</td>
-                            <td data-label="Objetivo"><span class="text-light">${p.programa_objetivo}</span></td>
-                            <td data-label="Versículo"><span class="text-light">${p.programa_texto}</span></td>
+                            <td data-label="Programa" class="text-bold">${p.programa_tema || '-'}</td>
+                            <td data-label="Objetivo"><span class="text-light">${p.programa_objetivo || '-'}</span></td>
+                            <td data-label="Versículo"><span class="text-light">${p.programa_texto || '-'}</span></td>
                             <td data-label="Estatus">
                                 <span class="badge" style="background-color: ${p.programa_estatus === 'Disponible' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
-                                    ${p.programa_estatus}
+                                    ${p.programa_estatus || '-'}
                                 </span>
                             </td>
                         </tr>

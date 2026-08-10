@@ -4,28 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escuela Digital - Bienvenid@</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
     <header class="navbar">
-        <div class="logo">🏫 Escuela Digital</div>
+        <div class="logo">
+            <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 10l9-6 9 6v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4H9v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10z"/>
+                <path d="M9 21V12h6v9"/>
+                <path d="M9 7h6"/>
+            </svg>
+            <span>Escuela Digital</span>
+        </div>
         <button id="btn-show-login" class="btn-primary">Iniciar Sesión</button>
     </header>
 
     <main class="hero">
-        <h1>Bienvenido al Sistema de Gestión Escolar</h1>
-        <p>Accede al control de materias, grados y planificación académica en un solo lugar.</p>
+        <div class="hero-container">
+            <h1>Bienvenido al Sistema de Gestión Escolar</h1>
+            <p>Accede al control de materias, grados y planificación académica en un solo lugar de manera rápida, limpia y profesional.</p>
+            <button class="btn-hero-cta" onclick="document.getElementById('btn-show-login').click()">Ingresar al Portal</button>
+        </div>
     </main>
 
     <!-- MODAL DE INICIO DE SESIÓN -->
     <div id="login-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
         <div class="modal-content">
-            <span id="close-modal" class="close">&times;</span>
-            <h2>Ingresar al Sistema</h2>
+            <button id="close-modal" class="close" aria-label="Cerrar modal">&times;</button>
+            <div class="login-card-header">
+                <div class="login-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 10l9-6 9 6v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4H9v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10z"/>
+                        <path d="M9 21V12h6v9"/>
+                        <path d="M9 7h6"/>
+                    </svg>
+                </div>
+                <h2>Escuela Digital</h2>
+                <p>Ingresa tus credenciales para acceder al sistema</p>
+            </div>
             <form id="login-form">
-                <input type="email" id="login-email" placeholder="Correo electrónico" required>
-                <input type="password" id="login-password" placeholder="Contraseña" required>
-                <button type="submit" class="btn-submit">Entrar</button>
+                <div class="input-group">
+                    <input type="email" id="login-email" placeholder="Correo electrónico" required autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-submit">Iniciar Sesión</button>
             </form>
             <p id="login-error" class="error-msg hidden"></p>
         </div>
