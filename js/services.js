@@ -8,6 +8,9 @@ export const AuthService = {
     },
     async signOut() {
         return await supabase.auth.signOut();
+    },
+    async updatePassword(password) {
+        return await supabase.auth.updateUser({ password });
     }
 };
 
@@ -147,6 +150,9 @@ export const ProfesorService = {
     },
     async getProfesorImagenByEmail(email) {
         return await supabase.from('profesores').select('profe_imagen_url').eq('profe_email', email).maybeSingle();
+    },
+    async getProfesorByEmail(email) {
+        return await supabase.from('profesores').select('*').eq('profe_email', email).maybeSingle();
     },
     async getProfesoresParaControl() {
         return await supabase.from('profesores').select('id, profe_nombre, profe_imagen_url, grado_id');

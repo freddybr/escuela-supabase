@@ -1,17 +1,23 @@
 import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
-import { ProfesorService, GradoService } from '../services.js';
+import { ProfesorService, GradoService, AuthService } from '../services.js';
 
 let containerElement = null;
 let editandoProfeId = null;
+let _tienePermisoRol = false;
 
 export async function cargarVistaProfesores(container) {
     containerElement = container;
     container.innerHTML = '<div class="loading">Consultando Profesores...</div>';
 
-    const [resProfesores, resGrados] = await Promise.all([
+    const [resProfesores, resGrados, resUser] = await Promise.all([
         ProfesorService.getProfesores(),
-        GradoService.getGrados()
+        GradoService.getGrados(),
+        AuthService.getUser()
     ]);
+
+    const userEmail = resUser.data?.user?.email || '';
+    const { data: currentProfe } = userEmail ? await ProfesorService.getProfesorByEmail(userEmail) : { data: null };
+    _tienePermisoRol = userEmail.toLowerCase() === 'freddybr.igle@gmail.com' || (currentProfe && currentProfe.profe_rol?.toLowerCase() === 'superadmin');
 
     if (resProfesores.error) {
         container.innerHTML = `<p class="error-msg">❌ Error: ${resProfesores.error.message}</p>`;
@@ -202,7 +208,17 @@ function abrirModalProfesor(profe = null) {
         inpTelf.value = '';
         selEstatus.value = 'Activo';
         inpRol.value = '';
-        btnBorrar.style.display = 'none';
+    }
+    
+    if (inpRol) {
+        inpRol.disabled = !_tienePermisoRol;
+        if (!_tienePermisoRol) {
+            inpRol.title = 'Solo Superadministradores pueden modificar el Rol';
+            inpRol.placeholder = 'Rol (Solo lectura)';
+        } else {
+            inpRol.title = '';
+            inpRol.placeholder = 'Ej: Titular, Auxiliar, Coordinador';
+        }
     }
 
     modal.style.display = 'flex';

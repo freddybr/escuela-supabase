@@ -36,3 +36,16 @@ if (loginForm) {
         }
     });
 }
+
+// Control de redirección por inactividad
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('reason') === 'inactivity') {
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+    if (errorMsg) {
+        errorMsg.textContent = '⚠️ Su sesión ha expirado por inactividad. Inicie sesión nuevamente.';
+        errorMsg.style.color = '#d97706'; // Color ámbar de advertencia
+        errorMsg.classList.remove('hidden');
+    }
+}

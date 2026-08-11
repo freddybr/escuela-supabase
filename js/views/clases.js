@@ -29,7 +29,7 @@ export async function cargarVistaClases(container) {
         </div>
         <div style="width: 220px;">
             <select id="filter-programa-clases" class="form-select">
-                <option value="">Todos los Programas</option>
+                <option value="">Programas</option>
                 ${programasUnicos.map(programa => `<option value="${programa}">${programa}</option>`).join('')}
             </select>
         </div>

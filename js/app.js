@@ -1,6 +1,12 @@
 import { AuthService, ProfesorService, AlumnoService } from './services.js';
 import { getFallbackAvatarUrl, setActiveNav, setupMobileMenu } from './ui.js';
 import { cargarVistaDashboard } from './views/dashboard.js';
+
+// Aplicar tema persistido inmediatamente
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.className = `theme-${savedTheme}`;
+})();
 import { cargarVistaPeriodos } from './views/periodos.js';
 import { cargarVistaMaterias } from './views/materias.js';
 import { cargarVistaGrados } from './views/grados.js';
@@ -11,7 +17,7 @@ import { cargarVistaProfesores } from './views/profesores.js';
 import { cargarVistaAsignaciones } from './views/asignaciones.js';
 import { cargarVistaControl } from './views/control.js';
 import { cargarVistaAsistencias } from './views/asistencias.js';
-import { cargarVistaPerfil } from './views/perfil.js';
+import { cargarVistaConfiguracion } from './views/configuracion.js';
 
 // ELEMENTOS DE LA INTERFAZ MÓVIL
 const menuToggle = document.getElementById('menu-toggle');
@@ -32,7 +38,7 @@ const navProfesores = document.getElementById('nav-profesores');
 const navAsignaciones = document.getElementById('nav-asignaciones');
 const navControl = document.getElementById('nav-control');
 const navAsistencias = document.getElementById('nav-asistencias');
-const navPerfil = document.getElementById('nav-perfil');
+const navConfig = document.getElementById('nav-config');
 const btnLogout = document.getElementById('btn-logout');
 
 const navButtons = [
@@ -47,7 +53,7 @@ const navButtons = [
     navAsignaciones,
     navControl,
     navAsistencias,
-    navPerfil
+    navConfig
 ];
 
 const { toggleMenu, cerrarMenuMovil } = setupMobileMenu({ menuToggle, appAside, asideOverlay });
@@ -115,9 +121,44 @@ navProfesores.addEventListener('click', () => cambiarVista(() => cargarVistaProf
 navAsignaciones.addEventListener('click', () => cambiarVista(() => cargarVistaAsignaciones(mainContent), navAsignaciones));
 navControl.addEventListener('click', () => cambiarVista(() => cargarVistaControl(mainContent), navControl));
 navAsistencias.addEventListener('click', () => cambiarVista(() => cargarVistaAsistencias(mainContent), navAsistencias));
-navPerfil.addEventListener('click', () => cambiarVista(() => cargarVistaPerfil(mainContent, checkUser), navPerfil));
+navConfig.addEventListener('click', () => cambiarVista(() => cargarVistaConfiguracion(mainContent, checkUser), navConfig));
 
-// LANZAR VERIFICACIÓN INICIAL
+// LÓGICA DE MONITOREO DE INACTIVIDAD
+let inactivityTimer = null;
+
+function resetInactivityTimer() {
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+    }
+
+    const minutes = parseInt(localStorage.getItem('inactiveTimeout') || '0', 10);
+    if (minutes <= 0) return; // 0 significa desactivado
+
+    const timeoutMs = minutes * 60 * 1000;
+    inactivityTimer = setTimeout(async () => {
+        console.warn(`Sesión cerrada por inactividad de ${minutes} minutos.`);
+        await AuthService.signOut();
+        window.location.href = 'index.html?reason=inactivity';
+    }, timeoutMs);
+}
+
+function iniciarMonitoreoInactividad() {
+    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => {
+        window.addEventListener(event, resetInactivityTimer, { passive: true });
+    });
+
+    // Escuchar el evento de cambio de configuración en tiempo real
+    window.addEventListener('inactiveTimeoutChanged', () => {
+        resetInactivityTimer();
+    });
+
+    resetInactivityTimer();
+}
+
+// LANZAR VERIFICACIÓN INICIAL Y MONITOREO DE INACTIVIDAD
+iniciarMonitoreoInactividad();
 checkUser().then(() => {
     cargarVistaDashboard(mainContent);
 });

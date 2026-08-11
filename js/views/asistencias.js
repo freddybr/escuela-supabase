@@ -122,19 +122,19 @@ export async function cargarVistaAsistencias(container) {
         </div>
         <div style="width: 180px;">
             <select id="filter-alumno" class="form-select">
-                <option value="">Todos los Alumnos</option>
+                <option value="">Alumnos</option>
                 ${alumnosUnicos.map(alumno => `<option value="${alumno}">${alumno}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
             <select id="filter-grado-asist" class="form-select">
-                <option value="">Todos los Grados</option>
+                <option value="">Grados</option>
                 ${gradosUnicos.map(grado => `<option value="${grado}">${grado}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
             <select id="filter-profesor" class="form-select">
-                <option value="">Todos los Profesores</option>
+                <option value="">Profesores</option>
                 ${profesoresUnicos.map(profesor => `<option value="${profesor}">${profesor}</option>`).join('')}
             </select>
         </div>

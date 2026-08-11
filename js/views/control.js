@@ -52,19 +52,19 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         </div>
         <div style="width: 180px;">
             <select id="filter-grado" class="form-select">
-                <option value="">Todos los Grados</option>
+                <option value="">Grados</option>
                 ${gradosUnicos.map(grado => `<option value="${grado}">Grado ${grado}</option>`).join('')}
             </select>
         </div>
         <div style="width: 220px;">
             <select id="filter-programa" class="form-select">
-                <option value="">Todos los Programas</option>
+                <option value="">Programas</option>
                 ${programasOrdenados.map(([id, tema]) => `<option value="${id}" data-nombre="${tema}">${tema}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
             <select id="filter-estatus" class="form-select">
-                <option value="">Todos los Estatus</option>
+                <option value="">Estatus</option>
                 ${estatusUnicos.map(e => `<option value="${e}">${e}</option>`).join('')}
             </select>
         </div>

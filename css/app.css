@@ -2,7 +2,7 @@
    1. VARIABLES Y MAQUETACIÓN GENERAL (Plus Jakarta Sans & Modern Slate)
    ========================================================================= */
 :root {
-    /* Color Palette */
+    /* Default - Claro (Light) */
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
     --bg-header: #0f172a;
@@ -49,6 +49,87 @@
     --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
     
     --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme overrides */
+body.theme-light {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-header: #0f172a;
+    --bg-aside: #0f172a;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: rgba(79, 70, 229, 0.08);
+}
+
+body.theme-dark {
+    --bg-main: #0b1329;
+    --bg-card: #1e293b;
+    --bg-header: #0f172a;
+    --bg-aside: #0f172a;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-light: #64748b;
+    --border-color: #334155;
+    --border-hover: #475569;
+    --primary: #818cf8;
+    --primary-hover: #6366f1;
+    --primary-light: rgba(129, 140, 248, 0.15);
+}
+
+body.theme-sepia {
+    --bg-main: #f4ecd8;
+    --bg-card: #fdf6e3;
+    --bg-header: #433422;
+    --bg-aside: #433422;
+    --text-primary: #5c4033;
+    --text-secondary: #704214;
+    --text-muted: #8b5a2b;
+    --text-light: #a0522d;
+    --border-color: #e4d7ba;
+    --border-hover: #cbd5e1;
+    --primary: #b45309;
+    --primary-hover: #92400e;
+    --primary-light: rgba(180, 83, 9, 0.1);
+}
+
+body.theme-indigo {
+    --bg-main: #f0f4ff;
+    --bg-card: #ffffff;
+    --bg-header: #1e1b4b;
+    --bg-aside: #1e1b4b;
+    --text-primary: #1e1b4b;
+    --text-secondary: #312e81;
+    --text-muted: #4338ca;
+    --text-light: #6366f1;
+    --border-color: #dbeafe;
+    --border-hover: #bfdbfe;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: rgba(79, 70, 229, 0.08);
+}
+
+body.theme-forest {
+    --bg-main: #f2f7f5;
+    --bg-card: #ffffff;
+    --bg-header: #142a20;
+    --bg-aside: #142a20;
+    --text-primary: #142a20;
+    --text-secondary: #1f3f30;
+    --text-muted: #2d5a45;
+    --text-light: #4c8a6c;
+    --border-color: #d1e2da;
+    --border-hover: #b4d0c1;
+    --primary: #10b981;
+    --primary-hover: #059669;
+    --primary-light: rgba(16, 185, 129, 0.08);
 }
 
 * {
@@ -438,7 +519,7 @@ body {
     padding: 10px 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    background: #ffffff;
+    background: var(--bg-card);
     color: var(--text-primary);
     font-family: var(--font);
     font-size: 0.9rem;
@@ -459,7 +540,7 @@ body {
 .profile-panel {
     max-width: 580px;
     margin: 20px auto;
-    background-color: white;
+    background-color: var(--bg-card);
     border-radius: var(--radius-xl);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-lg);
@@ -562,6 +643,11 @@ body {
     width: 100%;
 }
 
+.data-table tbody {
+    display: block;
+    width: 100%;
+}
+
 .data-table thead th {
     color: var(--text-muted);
     font-weight: 700;
@@ -616,6 +702,17 @@ body {
 
 /* --- GRIDS DE TABLAS EN DESKTOP (Min Width 768px) --- */
 @media (min-width: 768px) {
+    /* Forzar comportamiento de bloque en tablas y sus secciones para evitar fallos de alineación y bordes */
+    .data-table {
+        display: block;
+        width: 100%;
+    }
+    .data-table thead,
+    .data-table tbody {
+        display: block;
+        width: 100%;
+    }
+
     /* Las celdas de las filas deben estirarse al mismo alto máximo para que el borde inferior sea recto */
     .data-table thead tr,
     .data-table tbody tr {
@@ -626,6 +723,7 @@ body {
     /* Clases Table (4 Columnas) */
     .table-clases-scroll .data-table thead tr,
     .table-clases-scroll .data-table tbody tr {
+        display: grid;
         grid-template-columns: 80px 220px 1fr 220px;
         width: 100%;
     }
@@ -654,7 +752,22 @@ body {
         width: 100%;
     }
     
+    /* Definición de scrolls para tablas grandes */
+    .table-clases-scroll .data-table,
+    .table-control-scroll .data-table,
+    .table-asistencias-scroll .data-table,
+    .table-profesores-scroll .data-table,
+    .table-alumnos-scroll .data-table,
+    .table-asignaciones-scroll .data-table {
+        display: block;
+        width: max-content !important;
+        min-width: 100% !important;
+    }
+
     /* Asignaciones Table (8 Columnas) */
+    .table-asignaciones-scroll .data-table {
+        min-width: 970px;
+    }
     .table-asignaciones-scroll .data-table thead tr,
     .table-asignaciones-scroll .data-table tbody tr {
         display: grid;
@@ -663,6 +776,9 @@ body {
     }
     
     /* Control/Ejecución Table (7 Columnas) */
+    .table-control-scroll .data-table {
+        min-width: 1100px;
+    }
     .table-control-scroll .data-table thead tr,
     .table-control-scroll .data-table tbody tr {
         display: grid;
@@ -671,22 +787,34 @@ body {
     }
     
     /* Profesores Table (8 Columnas) */
+    .table-profesores-scroll .data-table {
+        min-width: 970px;
+    }
     .table-profesores-scroll .data-table thead tr,
     .table-profesores-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 70px 110px 180px 240px 300px 180px 120px 100px;
+        grid-template-columns: 50px 80px 140px 200px 1fr 130px 110px 100px;
         width: 100%;
+    }
+    .table-profesores-scroll .badge {
+        text-transform: none !important;
     }
     
     /* Alumnos Table (10 Columnas) */
+    .table-alumnos-scroll .data-table {
+        min-width: 1600px;
+    }
     .table-alumnos-scroll .data-table thead tr,
     .table-alumnos-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 70px 80px 220px 140px 200px 120px 110px 180px 130px 220px;
+        grid-template-columns: 70px 80px 220px 140px 1fr 120px 110px 180px 130px 220px;
         width: 100%;
     }
-
+ 
     /* Asistencias Table (10 Columnas) */
+    .table-asistencias-scroll .data-table {
+        min-width: 1450px;
+    }
     .table-asistencias-scroll .data-table thead tr,
     .table-asistencias-scroll .data-table tbody tr {
         display: grid;
@@ -887,7 +1015,7 @@ body {
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-card);
     width: min(100%, 640px);
     max-width: 640px;
     border-radius: var(--radius-lg); /* Radio de borde unificado */
@@ -910,7 +1038,7 @@ body {
     justify-content: space-between;
     padding: 12px 18px; /* Cabecera reducida */
     border-bottom: 1px solid var(--border-color);
-    background: #f8fafc;
+    background: var(--bg-main);
 }
 
 .modal-header h3 {
@@ -959,7 +1087,7 @@ body {
     justify-content: flex-end;
     padding: 12px 18px; /* Reducido */
     border-top: 1px solid var(--border-color);
-    background: #f8fafc;
+    background: var(--bg-main);
 }
 
 .form-row {
@@ -1091,7 +1219,7 @@ body {
 
     .app-main {
         padding: 16px;
-        overflow: hidden;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
     }
@@ -1313,4 +1441,275 @@ body {
 /* Ocultar barras de scroll globalmente en IE y Edge antiguo */
 * {
     -ms-overflow-style: none !important;
+}
+
+/* RESTAURAR barras de scroll para tablas y paneles de configuración */
+.table-responsive::-webkit-scrollbar,
+.config-content::-webkit-scrollbar {
+    display: block !important;
+    width: 8px !important;
+    height: 8px !important;
+}
+.table-responsive::-webkit-scrollbar-thumb,
+.config-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
+}
+.table-responsive::-webkit-scrollbar-track,
+.config-content::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 4px !important;
+}
+.table-responsive,
+.config-content {
+    scrollbar-width: auto !important;
+    -ms-overflow-style: auto !important;
+}
+
+/* Ocultar específicamente la barra de scroll vertical y su canal en todas las tablas responsive (el scroll con rueda de mouse sigue activo) */
+.table-responsive::-webkit-scrollbar:vertical {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* =========================================================================
+   12. MÓDULO DE CONFIGURACIÓN Y TABS
+   ========================================================================= */
+.app-main:has(.config-layout) {
+    height: calc(100vh - 70px) !important;
+    max-height: calc(100vh - 70px) !important;
+    overflow: hidden !important;
+}
+
+.app-main:has(.config-layout) #main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.config-layout {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+}
+
+.config-sidebar {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+    flex-shrink: 0;
+}
+
+.config-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.config-tab-btn:hover {
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.config-tab-btn.active {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.config-tab-icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.config-content {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto !important;
+    min-height: 0;
+}
+
+.config-section {
+    display: none;
+}
+
+.config-section.active {
+    display: block;
+    animation: configFadeIn 0.25s ease-out;
+}
+
+@keyframes configFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.config-section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.config-section-subtitle {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.config-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+    background: var(--bg-main);
+}
+
+.config-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Theme selector cards grid */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+}
+
+.theme-card {
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    cursor: pointer;
+    text-align: center;
+    background: var(--bg-card);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.theme-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-card.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.theme-preview-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.theme-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: var(--shadow-sm);
+}
+
+.theme-card-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* responsive */
+@media (max-width: 768px) {
+    .app-main:has(.config-layout) {
+        height: calc(100vh - 64px) !important;
+        max-height: calc(100vh - 64px) !important;
+        overflow: hidden !important;
+    }
+    
+    .config-layout {
+        flex-direction: column;
+        gap: 16px;
+        flex: 1;
+        min-height: 0;
+        margin-top: 10px;
+    }
+    
+    .config-sidebar {
+        width: 100%;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: stretch !important;
+        gap: 6px !important;
+        padding: 6px !important;
+        overflow: hidden !important;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        flex-shrink: 0;
+    }
+    
+    .config-tab-btn {
+        flex: 1 !important;
+        padding: 6px 4px !important;
+        font-size: 0.76rem !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        text-align: center !important;
+        flex-direction: column !important;
+        width: auto !important;
+        border-radius: var(--radius-sm);
+    }
+    
+    .config-tab-icon {
+        width: 16px;
+        height: 16px;
+        margin: 0 auto;
+    }
+    
+    .config-content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto !important;
+        min-height: 0;
+    }
 }
