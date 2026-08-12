@@ -381,8 +381,9 @@ body {
    4. CONTENEDOR PRINCIPAL
    ========================================================================= */
 .app-main {
+    --main-padding: 24px;
     flex: 1;
-    padding: 24px;
+    padding: 0 var(--main-padding) var(--main-padding) var(--main-padding);
     width: 100%;
     position: relative;
     background-color: var(--bg-main);
@@ -392,13 +393,13 @@ body {
 }
 
 /* Cuando la vista contiene una tabla, congelamos el scroll principal para que los cabezales queden fijos */
-.app-main:has(.table-responsive) {
+.app-main:has(.table-responsive):not(:has(.dashboard-topbar)) {
     height: calc(100vh - 70px) !important;
     max-height: calc(100vh - 70px) !important;
     overflow: hidden !important;
 }
 
-.app-main:has(.table-responsive) #main-content {
+.app-main:has(.table-responsive):not(:has(.dashboard-topbar)) #main-content {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -406,6 +407,10 @@ body {
 }
 
 .header-seccion {
+    position: sticky;
+    top: 0;
+    padding-top: var(--main-padding);
+    z-index: 40;
     background-color: var(--bg-main);
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border-color);
@@ -923,6 +928,123 @@ body {
     letter-spacing: -0.01em;
 }
 
+.dashboard-topbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.topbar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.highlight-card {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(99, 102, 241, 0.12));
+    border-color: rgba(79, 70, 229, 0.28);
+}
+
+.topbar-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.topbar-card strong {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+}
+
+.topbar-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.94rem;
+}
+
+.dashboard-section {
+    margin-bottom: 32px;
+}
+
+.dashboard-section-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.small-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.small-table thead tr {
+    background: var(--primary-light);
+}
+
+.small-table th,
+.small-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.small-table th {
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.small-table tbody tr:hover {
+    background: rgba(79, 70, 229, 0.04);
+}
+
+.stat-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.stat-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.stat-list strong {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.text-right {
+    text-align: right;
+}
+
+.kpi-caption {
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 860px) {
+    .dashboard-topbar {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* =========================================================================
    8. BOTONES Y ACCIONES CRUD
    ========================================================================= */
@@ -1218,20 +1340,21 @@ body {
     }
 
     .app-main {
-        padding: 16px;
+        --main-padding: 16px;
+        padding: 0 var(--main-padding) var(--main-padding) var(--main-padding);
         overflow-y: auto;
         display: flex;
         flex-direction: column;
     }
 
     /* Congelamos el scroll en el contenedor principal en móviles para los filtros y cabezales fijos */
-    .app-main:has(.table-responsive) {
+    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)) {
         height: calc(100vh - 64px) !important;
         max-height: calc(100vh - 64px) !important;
         overflow: hidden !important;
     }
 
-    .app-main:has(.table-responsive) #main-content {
+    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)) #main-content {
         display: flex;
         flex-direction: column;
         height: 100%;

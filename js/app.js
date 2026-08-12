@@ -1,12 +1,6 @@
 import { AuthService, ProfesorService, AlumnoService } from './services.js';
 import { getFallbackAvatarUrl, setActiveNav, setupMobileMenu } from './ui.js';
 import { cargarVistaDashboard } from './views/dashboard.js';
-
-// Aplicar tema persistido inmediatamente
-(function() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.body.className = `theme-${savedTheme}`;
-})();
 import { cargarVistaPeriodos } from './views/periodos.js';
 import { cargarVistaMaterias } from './views/materias.js';
 import { cargarVistaGrados } from './views/grados.js';
@@ -18,6 +12,31 @@ import { cargarVistaAsignaciones } from './views/asignaciones.js';
 import { cargarVistaControl } from './views/control.js';
 import { cargarVistaAsistencias } from './views/asistencias.js';
 import { cargarVistaConfiguracion } from './views/configuracion.js';
+
+// Helper seguro para localStorage
+export const safeLocalStorage = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn("Storage is blocked or unavailable:", e);
+            return null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn("Storage is blocked or unavailable:", e);
+        }
+    }
+};
+
+// Aplicar tema persistido inmediatamente
+(function() {
+    const savedTheme = safeLocalStorage.getItem('theme') || 'light';
+    document.body.className = `theme-${savedTheme}`;
+})();
 
 // ELEMENTOS DE LA INTERFAZ MÓVIL
 const menuToggle = document.getElementById('menu-toggle');
@@ -132,7 +151,7 @@ function resetInactivityTimer() {
         inactivityTimer = null;
     }
 
-    const minutes = parseInt(localStorage.getItem('inactiveTimeout') || '0', 10);
+    const minutes = parseInt(safeLocalStorage.getItem('inactiveTimeout') || '0', 10);
     if (minutes <= 0) return; // 0 significa desactivado
 
     const timeoutMs = minutes * 60 * 1000;
@@ -158,7 +177,28 @@ function iniciarMonitoreoInactividad() {
 }
 
 // LANZAR VERIFICACIÓN INICIAL Y MONITOREO DE INACTIVIDAD
-iniciarMonitoreoInactividad();
-checkUser().then(() => {
-    cargarVistaDashboard(mainContent);
-});
+try {
+    iniciarMonitoreoInactividad();
+    checkUser()
+        .then(() => {
+            cargarVistaDashboard(mainContent);
+        })
+        .catch(err => {
+            console.error("Error al inicializar la sesión del usuario:", err);
+            mainContent.innerHTML = `
+                <div class="error-msg-container" style="padding: 40px; text-align: center; color: #991b1b; background: rgba(239, 68, 68, 0.08); border-radius: 12px; border: 1px solid #ef4444; margin: 20px;">
+                    <h3>⚠️ Error al verificar la sesión</h3>
+                    <p>${err.message || err}</p>
+                    <button onclick="window.location.reload()" class="btn-primary" style="margin-top: 15px; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Reintentar</button>
+                </div>
+            `;
+        });
+} catch (error) {
+    console.error("Error crítico durante el arranque de la app:", error);
+    mainContent.innerHTML = `
+        <div class="error-msg-container" style="padding: 40px; text-align: center; color: #991b1b; background: rgba(239, 68, 68, 0.08); border-radius: 12px; border: 1px solid #ef4444; margin: 20px;">
+            <h3>❌ Error crítico de arranque</h3>
+            <p>${error.message || error}</p>
+        </div>
+    `;
+}

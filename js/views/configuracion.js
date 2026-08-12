@@ -5,6 +5,25 @@ let containerElement = null;
 let checkUserCallback = null;
 let _datosPerfil = { profesores: [], alumnos: [] };
 
+// Helper seguro para localStorage
+const safeLocalStorage = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn("Storage is blocked or unavailable:", e);
+            return null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn("Storage is blocked or unavailable:", e);
+        }
+    }
+};
+
 export async function cargarVistaConfiguracion(container, onPhotoUpdated = null) {
     containerElement = container;
     checkUserCallback = onPhotoUpdated;
@@ -35,8 +54,8 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     const tieneAccesoSeguridad = esPropietario || esSuperadmin;
 
     // Obtener valores guardados en localStorage
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    const savedTimeout = localStorage.getItem('inactiveTimeout') || '0'; // 0 = Nunca
+    const savedTheme = safeLocalStorage.getItem('theme') || 'light';
+    const savedTimeout = safeLocalStorage.getItem('inactiveTimeout') || '0'; // 0 = Nunca
 
     let htmlTemplate = `
     ${renderHeaderSeccion('configuracion', 'Configuración de Sistema', 'Gestione sus datos de perfil, seguridad de cuenta y personalice la apariencia.')}
@@ -395,7 +414,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
         selectInactivity.value = savedTimeout;
         selectInactivity.addEventListener('change', () => {
             const val = selectInactivity.value;
-            localStorage.setItem('inactiveTimeout', val);
+            safeLocalStorage.setItem('inactiveTimeout', val);
             mostrarMensaje('success', 'Preferencias de sesión actualizadas');
             
             // Disparar un evento personalizado para alertar a app.js del cambio inmediato
@@ -423,7 +442,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
 
             // Aplicar nuevo tema
             document.body.classList.add(`theme-${theme}`);
-            localStorage.setItem('theme', theme);
+            safeLocalStorage.setItem('theme', theme);
             mostrarMensaje('success', `Tema cambiado a: ${card.querySelector('.theme-card-name').textContent}`);
         });
     });
