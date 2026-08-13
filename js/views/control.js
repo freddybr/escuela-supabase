@@ -40,11 +40,17 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         }
     });
     const programasOrdenados = Array.from(mapaProgramas.entries()).sort((a, b) => a[0] - b[0]);
-
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
 
     let htmlTemplate = `
-    ${renderHeaderSeccion('control', 'Ejecución', 'Control de ejecución de clases.')}
+    ${renderHeaderSeccion('control', 'Ejecución', 'Control de ejecución de clases.', `
+        <div class="header-action-container">
+            <span class="control-counter-badge">
+                <span class="counter-dot"></span>
+                <span id="control-contador-texto">Cargando clases...</span>
+            </span>
+        </div>
+    `)}
 
     <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
         <div style="flex: 1 1 100%; min-width: 140px;">
@@ -74,13 +80,13 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         <table class="data-table" id="tabla-control">
             <thead>
                 <tr>
+                    <th># Estatus</th>    
                     <th>Fecha</th>
                     <th># Clase</th>
                     <th>Clase</th>
                     <th style="width: 90px; text-align: center;">Foto</th>
                     <th>Profesor</th>
                     <th>Observaciones</th>
-                    <th># Estatus</th>
                 </tr>
             </thead>
             <tbody>
@@ -110,6 +116,11 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
                             class="fila-control"
                             style="cursor: pointer;"
                         >
+                            <td data-label="Estatus">
+                                <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
+                                    ${n.control_estatus || 'Pendiente'}
+                                </span>
+                            </td>    
                             <td data-label="Fecha"><strong># ${n.control_fecha ?? 'Sin fecha'}</strong></td>
                             <td data-label="# Clase"><span class="text-light">${n.clase_num ?? ''}</span></td>
                             <td data-label="Clase"><span class="text-light">${n.clase_tema ?? ''}</span></td>
@@ -117,12 +128,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
                                 <img src="${fotoUrl}" alt="${n.profe_nombre || 'Profesor'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
                             </td>
                             <td data-label="Profesor"><span class="text-light">${n.profe_nombre || 'Sin asignar'}</span></td>
-                            <td data-label="Observaciones"><span class="text-light">${n.control_observaciones || ''}</span></td>
-                            <td data-label="Estatus">
-                                <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
-                                    ${n.control_estatus || 'Pendiente'}
-                                </span>
-                            </td>
+                            <td data-label="Observaciones"><span class="text-light">${n.control_observaciones || ''}</span></td>                            
                         </tr>
                         `;
                     }).join('')}
@@ -199,6 +205,8 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         }
 
         const filas = document.querySelectorAll('#tabla-control tbody tr');
+        let countVisible = 0;
+        const countTotal = filas.length;
 
         filas.forEach(row => {
             const fecha = row.getAttribute('data-fecha').toLowerCase();
@@ -215,16 +223,29 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
 
             if (coincideTexto && coincideGrado && coincidePrograma && coincideEstatus) {
                 row.style.removeProperty('display');
+                countVisible++;
             } else {
                 row.style.setProperty('display', 'none', 'important');
             }
         });
+
+        const contadorElemento = document.getElementById('control-contador-texto');
+        if (contadorElemento) {
+            if (countVisible === countTotal) {
+                contadorElemento.textContent = `${countTotal} clases`;
+            } else {
+                contadorElemento.textContent = `${countVisible} de ${countTotal} clases`;
+            }
+        }
     };
 
     inputSearch?.addEventListener('input', aplicarFiltrosControl);
     selectGrado?.addEventListener('change', aplicarFiltrosControl);
     selectPrograma?.addEventListener('change', aplicarFiltrosControl);
     selectEstatus?.addEventListener('change', aplicarFiltrosControl);
+
+    // Inicializar el contador llamando a aplicarFiltrosControl
+    aplicarFiltrosControl();
 
     if (filtrosPrevios) {
         if (inputSearch) inputSearch.value = filtrosPrevios.texto;

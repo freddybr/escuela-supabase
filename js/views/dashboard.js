@@ -65,8 +65,8 @@ export async function cargarVistaDashboard(container) {
             { res: resProgramasDisponibles, name: 'programas disponibles' },
             { res: resAsignacionesDetalles, name: 'asignaciones' },
             { res: resClases, name: 'clases' },
-            { res: resControlesVista, name: 'controles' },
-            { res: resAsistenciasVista, name: 'asistencias' }
+            { res: resControlesVista, name: 'controles vista' },
+            { res: resAsistenciasVista, name: 'asistencias vista' }
         ].filter(item => !item.res || item.res.error);
 
         if (errors.length) {
@@ -121,7 +121,14 @@ export async function cargarVistaDashboard(container) {
         });
 
         const asignadosPorPeriodo = countBy(asignacionesDetalles, item => normalizePeriodo(item));
-        const asignadosPeriodoActual = asignadosPorPeriodo.get(periodoNombre) || 0;
+        const totalAsignacionesCount = asignacionesDetalles.length;
+        const activeAsignacionesCount = asignacionesDetalles.filter(item => item && String(item.asigna_estatus || '').toLowerCase() === 'activa').length;
+        const pendingAsignacionesCount = asignacionesDetalles.filter(item => item && String(item.asigna_estatus || '').toLowerCase() === 'pendiente').length;
+        const finishedAsignacionesCount = asignacionesDetalles.filter(item => item && String(item.asigna_estatus || '').toLowerCase() === 'terminada').length;
+
+        const activePct = totalAsignacionesCount > 0 ? (activeAsignacionesCount / totalAsignacionesCount * 100) : 0;
+        const pendingPct = totalAsignacionesCount > 0 ? (pendingAsignacionesCount / totalAsignacionesCount * 100) : 0;
+        const finishedPct = totalAsignacionesCount > 0 ? (finishedAsignacionesCount / totalAsignacionesCount * 100) : 0;
 
         const programasElaborando = programas.filter(p => p && String(p.programa_estatus || '').toLowerCase() === 'elaborando').length;
         const programasCerrados = programas.filter(p => p && String(p.programa_estatus || '').toLowerCase().includes('cerrad')).length;
@@ -154,12 +161,27 @@ export async function cargarVistaDashboard(container) {
             estadoPorProgramaGrado.set(key, resumen);
         });
 
-        const periodoActualNombre = periodoNombre;
+        // 1. Identificar Asignaciones Activas y construir conjuntos de filtrado por ID
+        const activeAsignaciones = asignacionesDetalles.filter(item => item && String(item.asigna_estatus || '').toLowerCase() === 'activa');
+        const activeAsignacionIds = new Set(activeAsignaciones.map(a => a.asigna_id || a.id));
+        const activeGrades = new Set(activeAsignaciones.map(a => a.grado_numero));
+
+        // Claves activas formateadas como "NombreGrado|||NombrePrograma" para filtrar asistenciasVista
+        const activeGradeProgramKeys = new Set(
+            activeAsignaciones.map(a => {
+                const gradeName = a.grado_numero;
+                const progName = a.programa_tema;
+                return `${gradeName}|||${progName}`;
+            })
+        );
+
+        // 2. Filtrar asistencias en base a las claves de Asignaciones Activas (usando solo las vistas)
         const asistenciasPeriodo = asistenciasVista.filter(item => {
             if (!item) return false;
-            const periodo = normalizePeriodo(item);
-            return periodoActualNombre === periodo;
+            const key = `${item.grado || ''}|||${item.programa || ''}`;
+            return activeGradeProgramKeys.has(key);
         });
+
         const asistenciasPorGrado = new Map();
         asistenciasPeriodo.forEach(item => {
             if (!item) return;
@@ -167,9 +189,10 @@ export async function cargarVistaDashboard(container) {
             asistenciasPorGrado.set(grado, (asistenciasPorGrado.get(grado) || 0) + 1);
         });
 
+        // 3. Promedios de calificaciones en base a Asignaciones Activas (usando asistenciasPeriodo)
         const calificacionesPorAlumno = new Map();
         const calificacionesPorGrado = new Map();
-        asistenciasVista.forEach(item => {
+        asistenciasPeriodo.forEach(item => {
             if (!item) return;
             const valor = parseCalificacion(item.calificacion ?? item.nota ?? item.evaluacion ?? item.asist_evaluacion);
             if (valor === null) return;
@@ -196,9 +219,22 @@ export async function cargarVistaDashboard(container) {
             .sort((a, b) => b.promedio - a.promedio)
             .slice(0, 6);
 
+        // 4. Mapa de fotos de profesores
+        const mapaFotosProfesores = new Map();
+        profesores.forEach(p => {
+            if (p) {
+                mapaFotosProfesores.set(p.id, p.profe_imagen_url);
+            }
+        });
+
+        // 5. Clases vistas por grupo (Últimas Clases) filtrando por asigna_id de la Asignación Activa
         const clasesVistasPorGrupo = new Map();
         controlesVista
-            .filter(item => item && String(item.control_estatus || '').toLowerCase() === 'vista')
+            .filter(item => {
+                if (!item || String(item.control_estatus || '').toLowerCase() !== 'vista') return false;
+                const asignaId = item.asigna_id;
+                return asignaId && activeAsignacionIds.has(asignaId);
+            })
             .forEach(item => {
                 const grado = normalizeGrado(item);
                 const fecha = esFechaValida(item.control_fecha) ? new Date(item.control_fecha).getTime() : 0;
@@ -209,16 +245,23 @@ export async function cargarVistaDashboard(container) {
                         programa: programasPorId.get(item.programa_id)?.programa_tema || item.programa_tema || `Programa #${item.programa_id}`,
                         clase: item.clase_tema || item.clase || 'Sin clase',
                         profesor: item.profe_nombre || item.profesor || 'Sin profesor',
+                        profe_id: item.profe_id,
                         fecha: item.control_fecha,
                         fechaValor: fecha
                     });
                 }
             });
 
+        // 6. Próximas clases y grupos pendientes filtrando por asigna_id de la Asignación Activa
         const proximasClasesPorGrupo = new Map();
         const gruposPendientes = new Map();
         controlesVista.forEach(item => {
             if (!item) return;
+            const asignaId = item.asigna_id;
+            if (!asignaId || !activeAsignacionIds.has(asignaId)) {
+                return; // Ignorar si no pertenece a una asignación activa
+            }
+
             const grado = normalizeGrado(item);
             const estatus = String(item.control_estatus || '').toLowerCase() || 'pendiente';
             const fecha = esFechaValida(item.control_fecha) ? new Date(item.control_fecha).getTime() : null;
@@ -226,6 +269,7 @@ export async function cargarVistaDashboard(container) {
                 grado,
                 clase: item.clase_tema || item.clase || 'Sin clase',
                 profesor: item.profe_nombre || item.profesor || 'Sin profesor',
+                profe_id: item.profe_id,
                 fecha: item.control_fecha,
                 estatus,
                 fechaValor: fecha ?? Infinity
@@ -244,10 +288,10 @@ export async function cargarVistaDashboard(container) {
             }
         });
 
-        const activeAsignaciones = asignacionesDetalles.filter(item => item && String(item.asigna_estatus || '').toLowerCase() === 'activa');
+        // 7. Calcular métricas de asistencia para Asignaciones Activas
         const asignacionGrades = new Map();
         activeAsignaciones.forEach(item => {
-            const grado = normalizeGrado(item);
+            const grado = item.grado_numero || gradosPorId.get(item.grado_id) || `Grado ${item.grado_id}`;
             asignacionGrades.set(grado, (asignacionGrades.get(grado) || 0) + 1);
         });
 
@@ -289,17 +333,197 @@ export async function cargarVistaDashboard(container) {
         const ultimoClasesVistasRows = Array.from(clasesVistasPorGrupo.values())
             .sort((a, b) => b.fechaValor - a.fechaValor);
 
-        const proximasClasesRows = Array.from(gradosPorId.values()).map(grado => {
+        const proximasClasesRows = Array.from(activeGrades).map(grado => {
             const pending = gruposPendientes.get(grado);
             const programada = proximasClasesPorGrupo.get(grado);
             return programada ? programada : pending ? pending : null;
         }).filter(Boolean);
 
+        // Obtener el período anterior dinámicamente
+        let periodoAnteriorNombre = null;
+        if (periodoNombre !== 'No definido') {
+            const match = periodoNombre.match(/^(\d{4})-(\d{4})$/);
+            if (match) {
+                const prevStart = parseInt(match[1]) - 1;
+                const prevEnd = parseInt(match[2]) - 1;
+                const expectedPrev = `${prevStart}-${prevEnd}`;
+                const found = periodos.find(p => p.anio_periodo === expectedPrev);
+                if (found) {
+                    periodoAnteriorNombre = expectedPrev;
+                }
+            }
+        }
+        if (!periodoAnteriorNombre && periodoNombre !== 'No definido') {
+            const sortedPeriodos = [...periodos].sort((a, b) => (a.anio_periodo || '').localeCompare(b.anio_periodo || ''));
+            const idx = sortedPeriodos.findIndex(p => p.anio_periodo === periodoNombre);
+            if (idx > 0) {
+                periodoAnteriorNombre = sortedPeriodos[idx - 1].anio_periodo;
+            }
+        }
+
+        const getPeriodoForFecha = (fechaStr) => {
+            if (!fechaStr) return 'No definido';
+            const match = fechaStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (!match) {
+                const date = new Date(fechaStr);
+                if (Number.isNaN(date.getTime())) return 'No definido';
+                const y = date.getFullYear();
+                const m = date.getMonth() + 1;
+                if (m >= 8) {
+                    return `${y}-${y + 1}`;
+                } else {
+                    return `${y - 1}-${y}`;
+                }
+            }
+            const year = parseInt(match[1]);
+            const month = parseInt(match[2]);
+            if (month >= 8) {
+                return `${year}-${year + 1}`;
+            } else {
+                return `${year - 1}-${year}`;
+            }
+        };
+
+        // Construir un normalizador de grados utilizando la base de datos
+        const gradeNormalizerMap = new Map();
+        grados.forEach(g => {
+            if (g) {
+                const num = g.grado_numero;
+                const name = g.grado_nombre;
+                
+                if (num) {
+                    gradeNormalizerMap.set(num.toLowerCase().trim(), num);
+                }
+                if (name) {
+                    gradeNormalizerMap.set(name.toLowerCase().trim(), num);
+                    const cleanName = name.replace(/\p{Emoji}\s*/u, '').toLowerCase().trim();
+                    gradeNormalizerMap.set(cleanName, num);
+                }
+            }
+        });
+
+        const getStandardGrade = (record) => {
+            if (!record) return 'Sin grado';
+            const val = record.grado_numero || record.grado_nombre || record.grado || (record.grado_id ? gradosPorId.get(record.grado_id) : '');
+            if (!val) return 'Sin grado';
+            const standard = gradeNormalizerMap.get(val.toLowerCase().trim());
+            return standard || val;
+        };
+
+        const getGradeIcon = (grado) => {
+            const standard = getStandardGrade({ grado });
+            const match = grados.find(g => getStandardGrade(g) === standard);
+            if (match && match.grado_nombre) {
+                const parts = match.grado_nombre.split(' ');
+                if (parts.length > 0) {
+                    const emoji = parts[0];
+                    if (emoji.match(/\p{Emoji}/u)) {
+                        return emoji;
+                    }
+                }
+            }
+            return '📚';
+        };
+
+        const gradosConAsistenciaPresente = new Set(
+            asistenciasVista
+                .filter(item => {
+                    if (!item) return false;
+                    const isPresente = item.presente === true || 
+                                       String(item.presente).toLowerCase() === 'true' || 
+                                       String(item.presente).toLowerCase() === 'presente' ||
+                                       item.asist_presente === true || 
+                                       String(item.asist_presente).toLowerCase() === 'true';
+                    return isPresente;
+                })
+                .map(item => getStandardGrade(item))
+                .filter(g => g !== 'Sin grado')
+        );
+
+        const asistenciaPromedioAniosRows = Array.from(gradosPorId.values())
+            .map(gName => {
+                const gradoStandard = getStandardGrade({ grado: gName });
+
+                // Actual (periodoNombre)
+                const fechasVistasActual = new Set(
+                    controlesVista
+                        .filter(c => {
+                            if (!c || String(c.control_estatus || '').toLowerCase() !== 'vista') return false;
+                            if (getStandardGrade(c) !== gradoStandard) return false;
+                            return getPeriodoForFecha(c.control_fecha) === periodoNombre;
+                        })
+                        .map(c => c.control_fecha)
+                        .filter(Boolean)
+                );
+                const clasesVistasCountActual = fechasVistasActual.size;
+
+                const presentesSumActual = asistenciasVista
+                    .filter(item => {
+                        if (!item) return false;
+                        if (getStandardGrade(item) !== gradoStandard) return false;
+                        if (getPeriodoForFecha(item.fecha) !== periodoNombre) return false;
+                        const isPresente = item.presente === true || 
+                                           String(item.presente).toLowerCase() === 'true' || 
+                                           String(item.presente).toLowerCase() === 'presente' ||
+                                           item.asist_presente === true || 
+                                           String(item.asist_presente).toLowerCase() === 'true';
+                        return isPresente;
+                    })
+                    .length;
+
+                const promedioActual = (clasesVistasCountActual > 0 && presentesSumActual > 0) 
+                    ? (presentesSumActual / clasesVistasCountActual).toFixed(1) 
+                    : '-';
+
+                // Último (periodoAnteriorNombre)
+                let clasesVistasCountUltimo = 0;
+                let presentesSumUltimo = 0;
+                if (periodoAnteriorNombre) {
+                    const fechasVistasUltimo = new Set(
+                        controlesVista
+                            .filter(c => {
+                                if (!c || String(c.control_estatus || '').toLowerCase() !== 'vista') return false;
+                                if (getStandardGrade(c) !== gradoStandard) return false;
+                                return getPeriodoForFecha(c.control_fecha) === periodoAnteriorNombre;
+                            })
+                            .map(c => c.control_fecha)
+                            .filter(Boolean)
+                    );
+                    clasesVistasCountUltimo = fechasVistasUltimo.size;
+
+                    presentesSumUltimo = asistenciasVista
+                        .filter(item => {
+                            if (!item) return false;
+                            if (getStandardGrade(item) !== gradoStandard) return false;
+                            if (getPeriodoForFecha(item.fecha) !== periodoAnteriorNombre) return false;
+                            const isPresente = item.presente === true || 
+                                               String(item.presente).toLowerCase() === 'true' || 
+                                               String(item.presente).toLowerCase() === 'presente' ||
+                                               item.asist_presente === true || 
+                                               String(item.asist_presente).toLowerCase() === 'true';
+                            return isPresente;
+                        })
+                        .length;
+                }
+                
+                const promedioUltimo = (clasesVistasCountUltimo > 0 && presentesSumUltimo > 0) 
+                    ? (presentesSumUltimo / clasesVistasCountUltimo).toFixed(1) 
+                    : '-';
+
+                return {
+                    grado: gName,
+                    gradoStandard,
+                    promedioActual,
+                    promedioUltimo
+                };
+            })
+            .filter(row => gradosConAsistenciaPresente.has(row.gradoStandard));
+
         const alumnosPorGradoRows = Array.from(alumnosPorGrado.entries()).map(([grado, total]) => ({ grado, total })).sort((a, b) => b.total - a.total);
         const profesPorGradoRows = Array.from(profesPorGrado.entries()).map(([grado, total]) => ({ grado, total })).sort((a, b) => b.total - a.total);
 
         container.innerHTML = `
-            ${renderHeaderSeccion('dashboard', 'Panel General', 'Indicadores clave del colegio por categoría: Contenido, Seguimiento y Comunidad.')}
+            ${renderHeaderSeccion('dashboard', 'Panel General', 'Indicadores clave del colegio por categoría: Cartelera, Contenido, Seguimiento y Comunidad.')}
 
             <div class="dashboard-topbar">
                 <div class="topbar-card">
@@ -315,32 +539,153 @@ export async function cargarVistaDashboard(container) {
             </div>
 
             <section class="dashboard-section">
-                <h3 class="dashboard-section-title">Contenido</h3>
-                <div class="dashboard-grid">
-                    <div class="kpi-card">
-                        <h3>Total de Programas</h3>
-                        <div class="kpi-value">${programasTotales}</div>
-                        <p class="kpi-caption">Incluye todos los estados registrados.</p>
+                <h3 class="dashboard-section-title">
+                    <svg class="dashboard-section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Cartelera
+                </h3>
+
+                <div class="chart-card">
+                    <h3>Próxima clase</h3>
+                    <div class="table-responsive table-cartelera-scroll">
+                        <table class="small-table">
+                            <thead>
+                                <tr><th>Grado</th><th>Clase</th><th></th><th>Profesor</th><th>Estatus</th><th>Fecha</th></tr>
+                            </thead>
+                            <tbody>
+                                ${proximasClasesRows.map(row => {
+                                    const urlImagenBase = row.estatus === 'programada' ? mapaFotosProfesores.get(row.profe_id) : null;
+                                    const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
+                                        ? urlImagenBase
+                                        : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.estatus === 'programada' ? row.profesor : 'Sin Asignar')}&backgroundColor=cbd5e1`;
+
+                                    return `
+                                    <tr>
+                                        <td>${row.grado}</td>
+                                        <td>${row.clase}</td>
+                                        <td style="width: 40px; text-align: center; padding-right: 0;">
+                                            <img src="${fotoUrl}" alt="${row.profesor}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.estatus === 'programada' ? row.profesor : 'Sin Asignar')}&backgroundColor=cbd5e1'">
+                                        </td>
+                                        <td>${row.estatus === 'programada' ? row.profesor : 'Requiere programarse'}</td>
+                                        <td>
+                                            <span class="badge" style="background-color: ${row.estatus === 'programada' ? '#198754' : '#ffc107'}; color: ${row.estatus === 'programada' ? '#ffffff' : '#000000'};">
+                                                ${row.estatus === 'programada' ? 'Programada' : 'Pendiente'}
+                                            </span>
+                                        </td>
+                                        <td>${row.estatus === 'programada' ? formatearFecha(row.fecha) : 'Pendiente'}</td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="kpi-card">
-                        <h3>Programas Asignados (${periodoNombre})</h3>
-                        <div class="kpi-value">${asignadosPeriodoActual}</div>
-                        <p class="kpi-caption">Programas asignados en el periodo vigente.</p>
+                </div>
+
+                <div class="chart-card" style="margin-top: 16px;">
+                    <h3>Últimas clases vistas</h3>
+                    <div class="table-responsive table-cartelera-scroll">
+                        <table class="small-table">
+                            <thead>
+                                <tr><th>Grado</th><th>Clase</th><th></th><th>Profesor</th><th>Fecha</th></tr>
+                            </thead>
+                            <tbody>
+                                ${ultimoClasesVistasRows.map(row => {
+                                    const urlImagenBase = mapaFotosProfesores.get(row.profe_id);
+                                    const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
+                                        ? urlImagenBase
+                                        : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.profesor || 'Profe')}&backgroundColor=cbd5e1`;
+
+                                    return `
+                                    <tr>
+                                        <td>${row.grado}</td>
+                                        <td>${row.clase}</td>
+                                        <td style="width: 40px; text-align: center; padding-right: 0;">
+                                            <img src="${fotoUrl}" alt="${row.profesor}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.profesor || 'Profe')}&backgroundColor=cbd5e1'">
+                                        </td>
+                                        <td>${row.profesor}</td>
+                                        <td>${formatearFecha(row.fecha)}</td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="kpi-card">
-                        <h3>Programas Disponibles</h3>
-                        <div class="kpi-value">${programasDisponiblesTotales}</div>
-                        <p class="kpi-caption">Contenidos listos para asignar.</p>
+                </div>
+            </section>
+
+            <section class="dashboard-section">
+                <h3 class="dashboard-section-title">
+                    <svg class="dashboard-section-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    Contenido
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Programas</h4>
+                    <div class="dashboard-grid" style="margin-bottom: 1rem;">
+                        <div class="kpi-card">
+                            <h3>Total de Programas</h3>
+                            <div class="kpi-value">${programasTotales}</div>
+                            <p class="kpi-caption">Incluye todos los estados registrados.</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Programas Disponibles</h3>
+                            <div class="kpi-value">${programasDisponiblesTotales}</div>
+                            <p class="kpi-caption">Contenidos listos para asignar.</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Programas en Elaboración</h3>
+                            <div class="kpi-value">${programasElaborando}</div>
+                            <p class="kpi-caption">Contenidos en desarrollo.</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>Programas Cerrados</h3>
+                            <div class="kpi-value">${programasCerrados}</div>
+                            <p class="kpi-caption">Programas finalizados o archivados.</p>
+                        </div>
                     </div>
-                    <div class="kpi-card">
-                        <h3>Programas en Elaboración</h3>
-                        <div class="kpi-value">${programasElaborando}</div>
-                        <p class="kpi-caption">Contenidos en desarrollo.</p>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Programas Cerrados</h3>
-                        <div class="kpi-value">${programasCerrados}</div>
-                        <p class="kpi-caption">Programas finalizados o archivados.</p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Asignaciones</h4>
+                    <div class="dashboard-grid">
+                        <div class="kpi-card">
+                            <h3>Total de Asignaciones</h3>
+                            <div class="kpi-value">${totalAsignacionesCount}</div>
+                            <p class="kpi-caption">Historial acumulado de asignaciones.</p>
+                        </div>
+                        <div class="kpi-card" style="grid-column: span 2; min-height: 140px;">
+                            <h3>Asignaciones por Estatus</h3>
+                            <div class="status-bars-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                                <!-- Activas -->
+                                <div class="status-bar-row" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span>Activa</span>
+                                        <strong>${activeAsignacionesCount} (${activePct.toFixed(0)}%)</strong>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: #22c55e; width: ${activePct}%; height: 100%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <!-- Pendientes -->
+                                <div class="status-bar-row" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span>Pendiente</span>
+                                        <strong>${pendingAsignacionesCount} (${pendingPct.toFixed(0)}%)</strong>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: #eab308; width: ${pendingPct}%; height: 100%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <!-- Terminadas -->
+                                <div class="status-bar-row" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span>Terminada</span>
+                                        <strong>${finishedAsignacionesCount} (${finishedPct.toFixed(0)}%)</strong>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="background: #ef4444; width: ${finishedPct}%; height: 100%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -376,34 +721,27 @@ export async function cargarVistaDashboard(container) {
             </section>
 
             <section class="dashboard-section">
-                <h3 class="dashboard-section-title">Seguimiento</h3>
+                <h3 class="dashboard-section-title">
+                    <svg class="dashboard-section-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Seguimiento
+                </h3>
                 
-                <div class="dashboard-grid">
-                    <div class="kpi-card">
-                        <h3>Promedio de calificaciones por alumno</h3>
-                        <div class="kpi-value">${promedioAlumnoRows.length ? promedioAlumnoRows[0].promedio.toFixed(1) : 'N/A'}</div>
-                        <p class="kpi-caption">Mejor promedio entre los últimos registros.</p>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Promedio de calificaciones por grado</h3>
-                        <div class="kpi-value">${promedioGradoRows.length ? promedioGradoRows[0].promedio.toFixed(1) : 'N/A'}</div>
-                        <p class="kpi-caption">Mejor grado según calificaciones históricas.</p>
-                    </div>
-                </div>
-
                 <div class="charts-grid" style="margin-top: 16px;">
                     <div class="chart-card">
                         <h3>Clases por estatus, programa y grado</h3>
                         <div class="table-responsive">
                             <table class="small-table">
                                 <thead>
-                                    <tr><th>Programa</th><th>Grado</th><th>Vista</th><th>Programada</th><th>Pendiente</th></tr>
+                                    <tr><th>Programa</th><th>Grado</th><th class="text-right">Vista</th><th class="text-right">Programada</th><th class="text-right">Pendiente</th></tr>
                                 </thead>
                                 <tbody>
                                     ${estadoPorProgramaGradoRows.map(row => `
                                         <tr>
                                             <td>${row.programa}</td>
-                                            <td>${row.grado}</td>
+                                            <td>
+                                                <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
+                                                ${row.grado}
+                                            </td>
                                             <td class="text-right">${row.Vista}</td>
                                             <td class="text-right">${row.Programada}</td>
                                             <td class="text-right">${row.Pendiente}</td>
@@ -414,103 +752,53 @@ export async function cargarVistaDashboard(container) {
                         </div>
                     </div>
                     <div class="chart-card">
-                        <h3>Asistencias por grado (${periodoNombre})</h3>
+                        <h3>Asistencias promedio por grado y período</h3>
                         <div class="table-responsive">
                             <table class="small-table">
                                 <thead>
-                                    <tr><th>Grado</th><th class="text-right">Asistencias</th></tr>
+                                    <tr>
+                                        <th>Grado</th>
+                                        <th class="text-right">Último (${periodoAnteriorNombre || 'N/A'})</th>
+                                        <th class="text-right">Actual (${periodoNombre})</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                    ${asistenciaPorGradoRows.map(row => `
+                                    ${asistenciaPromedioAniosRows.map(row => `
                                         <tr>
-                                            <td>${row.grado}</td>
-                                            <td class="text-right">${row.total}</td>
+                                            <td>
+                                                <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
+                                                ${row.grado}
+                                            </td>
+                                            <td class="text-right">${row.promedioUltimo}</td>
+                                            <td class="text-right">${row.promedioActual}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-                <div class="chart-card" style="margin-top: 16px;">
-                    <h3>Últimas clases vistas por grupo</h3>
-                    <div class="table-responsive">
-                        <table class="small-table">
-                            <thead>
-                                <tr><th>Grado</th><th>Clase</th><th>Profesor</th><th>Fecha</th></tr>
-                            </thead>
-                            <tbody>
-                                ${ultimoClasesVistasRows.map(row => `
-                                    <tr>
-                                        <td>${row.grado}</td>
-                                        <td>${row.clase}</td>
-                                        <td>${row.profesor}</td>
-                                        <td>${formatearFecha(row.fecha)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="chart-card" style="margin-top: 16px;">
-                    <h3>Próxima clase a ver por grupo</h3>
-                    <div class="table-responsive">
-                        <table class="small-table">
-                            <thead>
-                                <tr><th>Grado</th><th>Clase</th><th>Profesor</th><th>Estatus</th><th>Fecha</th></tr>
-                            </thead>
-                            <tbody>
-                                ${proximasClasesRows.map(row => `
-                                    <tr>
-                                        <td>${row.grado}</td>
-                                        <td>${row.clase}</td>
-                                        <td>${row.estatus === 'programada' ? row.profesor : 'Requiere programarse'}</td>
-                                        <td>${row.estatus === 'programada' ? 'Programada' : 'Pendiente'}</td>
-                                        <td>${row.estatus === 'programada' ? formatearFecha(row.fecha) : 'Pendiente'}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </section>
 
             <section class="dashboard-section">
-                <h3 class="dashboard-section-title">Comunidad</h3>
+                <h3 class="dashboard-section-title">
+                    <svg class="dashboard-section-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Comunidad
+                </h3>
                 <div class="charts-grid">
                     <div class="chart-card">
                         <h3>Alumnos por grado</h3>
                         <ul class="stat-list">
-                            ${alumnosPorGradoRows.map(row => `<li><span>${row.grado}</span><strong>${row.total}</strong></li>`).join('')}
+                            ${alumnosPorGradoRows.map(row => `<li><span><span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>${row.grado}</span><strong>${row.total}</strong></li>`).join('')}
                         </ul>
                     </div>
                     <div class="chart-card">
                         <h3>Profesores por grado</h3>
                         <ul class="stat-list">
-                            ${profesPorGradoRows.map(row => `<li><span>${row.grado}</span><strong>${row.total}</strong></li>`).join('')}
+                            ${profesPorGradoRows.map(row => `<li><span><span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>${row.grado}</span><strong>${row.total}</strong></li>`).join('')}
                         </ul>
                     </div>
-                    <div class="chart-card">
-                        <h3>Asistencias promedio por grupo (Activas)</h3>
-                        <div class="table-responsive">
-                            <table class="small-table">
-                                <thead>
-                                    <tr><th>Grado</th><th class="text-right">Promedio</th><th class="text-right">Alumnos</th></tr>
-                                </thead>
-                                <tbody>
-                                    ${asistenciaPromedioRows.map(row => `
-                                        <tr>
-                                            <td>${row.grado}</td>
-                                            <td class="text-right">${row.promedio}</td>
-                                            <td class="text-right">${row.totalAlumnos}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+
                 </div>
             </section>
         `;
