@@ -297,6 +297,7 @@ body {
     background-position: 14px center;
     background-size: 20px;
     padding-left: 48px !important;
+    padding-right: 48px !important;
 }
 
 #login-form input:focus {
@@ -332,7 +333,32 @@ body {
     text-align: center;
     background: #fef2f2;
     border: 1px solid #fee2e2;
-    padding: 10px;
-    border-radius: 8px;
     margin-top: 4px;
+}
+
+/* Password Toggle Button */
+.toggle-password-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--slate-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    z-index: 10;
+}
+
+.toggle-password-btn:hover {
+    color: var(--slate-700);
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
 }

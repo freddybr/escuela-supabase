@@ -30,14 +30,14 @@
             </svg>
             <span>Escuela Digital</span>
         </div>
-        <button id="btn-show-login" class="btn-primary">Iniciar Sesión</button>
+        <!-- Iniciar Sesión button removed from navbar -->
     </header>
 
     <main class="hero">
         <div class="hero-container">
             <h1>Bienvenido al Sistema de Gestión Escolar</h1>
             <p>Accede al control de materias, grados y planificación académica en un solo lugar de manera rápida, limpia y profesional.</p>
-            <button class="btn-hero-cta" onclick="document.getElementById('btn-show-login').click()">Ingresar al Portal</button>
+            <button id="btn-show-login" class="btn-hero-cta">Ingresar al Portal</button>
         </div>
     </main>
 
@@ -63,6 +63,12 @@
                 </div>
                 <div class="input-group">
                     <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
+                    <button type="button" id="toggle-password" class="toggle-password-btn" aria-label="Mostrar contraseña">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
                 </div>
                 <button type="submit" class="btn-submit">Iniciar Sesión</button>
             </form>
