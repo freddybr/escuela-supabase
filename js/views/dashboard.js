@@ -242,6 +242,7 @@ export async function cargarVistaDashboard(container) {
                 if (!actual || fecha > actual.fechaValor) {
                     clasesVistasPorGrupo.set(grado, {
                         grado,
+                        clase_num: item.clase_num,
                         programa: programasPorId.get(item.programa_id)?.programa_tema || item.programa_tema || `Programa #${item.programa_id}`,
                         clase: item.clase_tema || item.clase || 'Sin clase',
                         profesor: item.profe_nombre || item.profesor || 'Sin profesor',
@@ -267,6 +268,7 @@ export async function cargarVistaDashboard(container) {
             const fecha = esFechaValida(item.control_fecha) ? new Date(item.control_fecha).getTime() : null;
             const registro = {
                 grado,
+                clase_num: item.clase_num,
                 clase: item.clase_tema || item.clase || 'Sin clase',
                 profesor: item.profe_nombre || item.profesor || 'Sin profesor',
                 profe_id: item.profe_id,
@@ -549,7 +551,7 @@ export async function cargarVistaDashboard(container) {
                     <div class="table-responsive table-cartelera-scroll">
                         <table class="small-table">
                             <thead>
-                                <tr><th>Grado</th><th>Clase</th><th></th><th>Profesor</th><th>Estatus</th><th>Fecha</th></tr>
+                                <tr><th>Grado</th><th># Clase</th><th>Clase</th><th></th><th>Profesor</th><th>Estatus</th><th>Fecha</th></tr>
                             </thead>
                             <tbody>
                                 ${proximasClasesRows.map(row => {
@@ -561,6 +563,7 @@ export async function cargarVistaDashboard(container) {
                                     return `
                                     <tr>
                                         <td>${row.grado}</td>
+                                        <td class="text-bold">${row.clase_num ?? '-'}</td>
                                         <td>${row.clase}</td>
                                         <td style="width: 40px; text-align: center; padding-right: 0;">
                                             <img src="${fotoUrl}" alt="${row.profesor}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.estatus === 'programada' ? row.profesor : 'Sin Asignar')}&backgroundColor=cbd5e1'">
@@ -585,7 +588,7 @@ export async function cargarVistaDashboard(container) {
                     <div class="table-responsive table-cartelera-scroll">
                         <table class="small-table">
                             <thead>
-                                <tr><th>Grado</th><th>Clase</th><th></th><th>Profesor</th><th>Fecha</th></tr>
+                                <tr><th>Grado</th><th># Clase</th><th>Clase</th><th></th><th>Profesor</th><th>Fecha</th></tr>
                             </thead>
                             <tbody>
                                 ${ultimoClasesVistasRows.map(row => {
@@ -597,6 +600,7 @@ export async function cargarVistaDashboard(container) {
                                     return `
                                     <tr>
                                         <td>${row.grado}</td>
+                                        <td class="text-bold">${row.clase_num ?? '-'}</td>
                                         <td>${row.clase}</td>
                                         <td style="width: 40px; text-align: center; padding-right: 0;">
                                             <img src="${fotoUrl}" alt="${row.profesor}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.profesor || 'Profe')}&backgroundColor=cbd5e1'">
