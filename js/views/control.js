@@ -1,5 +1,5 @@
 import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
-import { ControlService, ProfesorService } from '../services.js';
+import { ControlService, ProfesorService, AsignacionService } from '../services.js';
 
 let containerElement = null;
 let todosProfesores = [];
@@ -8,9 +8,10 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     containerElement = container;
     container.innerHTML = '<div class="loading">Consultando Ejecución de Clases...</div>';
 
-    const [resVista, resProfesores] = await Promise.all([
+    const [resVista, resProfesores, resAsignaciones] = await Promise.all([
         ControlService.getControlesVista(),
-        ProfesorService.getProfesoresParaControl()
+        ProfesorService.getProfesoresParaControl(),
+        AsignacionService.getAsignacionesDetalles()
     ]);
 
     if (resVista.error) {
@@ -23,23 +24,29 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         return;
     }
 
+    if (resAsignaciones.error) {
+        container.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</p>`;
+        return;
+    }
+
     todosProfesores = resProfesores.data || [];
     const vista_control = resVista.data || [];
+    const listaAsignaciones = resAsignaciones.data || [];
+
+    const formatearFecha = (fechaStr) => {
+        if (!fechaStr) return '';
+        const parts = fechaStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return fechaStr;
+    };
 
     const mapaFotosProfesores = new Map();
     todosProfesores.forEach(p => {
         mapaFotosProfesores.set(p.id, p.profe_imagen_url);
     });
 
-    const gradosUnicos = [...new Set(vista_control.map(n => n.grado_numero).filter(Boolean))].sort((a, b) => a - b);
-    
-    const mapaProgramas = new Map();
-    vista_control.forEach(n => {
-        if (n.programa_id && !mapaProgramas.has(n.programa_id)) {
-            mapaProgramas.set(n.programa_id, n.programa_tema || `Programa ${n.programa_id}`);
-        }
-    });
-    const programasOrdenados = Array.from(mapaProgramas.entries()).sort((a, b) => a[0] - b[0]);
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
 
     let htmlTemplate = `
@@ -56,16 +63,10 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         <div style="flex: 1 1 100%; min-width: 140px;">
             <input type="text" id="filter-search" class="form-control" placeholder="Buscar Fecha, Clase o Profesor...">
         </div>
-        <div style="width: 180px;">
-            <select id="filter-grado" class="form-select">
-                <option value="">Grados</option>
-                ${gradosUnicos.map(grado => `<option value="${grado}">Grado ${grado}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 220px;">
-            <select id="filter-programa" class="form-select">
-                <option value="">Programas</option>
-                ${programasOrdenados.map(([id, tema]) => `<option value="${id}" data-nombre="${tema}">${tema}</option>`).join('')}
+        <div style="width: 320px; max-width: 100%;">
+            <select id="filter-asignacion" class="form-select">
+                <option value="">Asignaciones</option>
+                ${listaAsignaciones.map(asig => `<option value="${asig.asigna_id}">#${asig.asigna_id} - Prog: ${asig.programa_tema} | Grado: ${asig.grado_numero}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
@@ -80,7 +81,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         <table class="data-table" id="tabla-control">
             <thead>
                 <tr>
-                    <th># Estatus</th>    
+                    <th>Estatus</th>    
                     <th>Fecha</th>
                     <th># Clase</th>
                     <th>Clase</th>
@@ -106,6 +107,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
                         return `
                         <tr 
                             data-id="${n.control_id}"
+                            data-asigna-id="${n.asigna_id || ''}"
                             data-fecha="${n.control_fecha || ''}" 
                             data-grado="${n.grado_numero || ''}"
                             data-programa="${n.programa_id || ''}" 
@@ -121,7 +123,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
                                     ${n.control_estatus || 'Pendiente'}
                                 </span>
                             </td>    
-                            <td data-label="Fecha"><strong># ${n.control_fecha ?? 'Sin fecha'}</strong></td>
+                            <td data-label="Fecha"><strong>${formatearFecha(n.control_fecha) || 'Sin fecha'}</strong></td>
                             <td data-label="# Clase"><span class="text-light">${n.clase_num ?? ''}</span></td>
                             <td data-label="Clase"><span class="text-light">${n.clase_tema ?? ''}</span></td>
                             <td data-label="Foto" style="text-align: center;">
@@ -184,44 +186,48 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     container.innerHTML = htmlTemplate;
 
     const inputSearch = document.getElementById('filter-search');
-    const selectGrado = document.getElementById('filter-grado');
-    const selectPrograma = document.getElementById('filter-programa');
+    const selectAsignacion = document.getElementById('filter-asignacion');
     const selectEstatus = document.getElementById('filter-estatus');
 
     const aplicarFiltrosControl = () => {
         const textoBusqueda = (inputSearch?.value || '').toLowerCase();
-        const gradoSel = selectGrado?.value || '';
-        const programaSel = selectPrograma?.value || '';
+        const asignaSel = selectAsignacion?.value || '';
         const estatusSel = selectEstatus?.value || '';
 
         const tituloHeader = document.getElementById('titulo-control-header');
         if (tituloHeader) {
-            if (programaSel && selectPrograma.selectedIndex > 0) {
-                const nombrePrograma = selectPrograma.options[selectPrograma.selectedIndex].getAttribute('data-nombre');
-                tituloHeader.textContent = `Ejecución - ${nombrePrograma}`;
+            if (asignaSel && selectAsignacion.selectedIndex > 0) {
+                const nombreAsignacion = selectAsignacion.options[selectAsignacion.selectedIndex].text;
+                tituloHeader.textContent = `Ejecución - ${nombreAsignacion}`;
             } else {
                 tituloHeader.textContent = 'Ejecución';
             }
         }
 
         const filas = document.querySelectorAll('#tabla-control tbody tr');
+        
+        let countTotal = 0;
+        filas.forEach(row => {
+            const asignaId = row.getAttribute('data-asigna-id');
+            if (!asignaSel || asignaId === asignaSel) {
+                countTotal++;
+            }
+        });
+
         let countVisible = 0;
-        const countTotal = filas.length;
 
         filas.forEach(row => {
-            const fecha = row.getAttribute('data-fecha').toLowerCase();
+            const fecha = (row.getAttribute('data-fecha') || '').toLowerCase();
             const clase = (row.getAttribute('data-clase-tema') || '').toLowerCase();
-            const profesor = row.getAttribute('data-profesor').toLowerCase();
-            const grado = row.getAttribute('data-grado');
-            const programa = row.getAttribute('data-programa');
+            const profesor = (row.getAttribute('data-profesor') || '').toLowerCase();
+            const asignaId = row.getAttribute('data-asigna-id');
             const estatus = row.getAttribute('data-estatus');
 
             const coincideTexto = !textoBusqueda || fecha.includes(textoBusqueda) || clase.includes(textoBusqueda) || profesor.includes(textoBusqueda);
-            const coincideGrado = !gradoSel || grado === gradoSel;
-            const coincidePrograma = !programaSel || programa === programaSel;
+            const coincideAsignacion = !asignaSel || asignaId === asignaSel;
             const coincideEstatus = !estatusSel || estatus === estatusSel;
 
-            if (coincideTexto && coincideGrado && coincidePrograma && coincideEstatus) {
+            if (coincideTexto && coincideAsignacion && coincideEstatus) {
                 row.style.removeProperty('display');
                 countVisible++;
             } else {
@@ -240,8 +246,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     };
 
     inputSearch?.addEventListener('input', aplicarFiltrosControl);
-    selectGrado?.addEventListener('change', aplicarFiltrosControl);
-    selectPrograma?.addEventListener('change', aplicarFiltrosControl);
+    selectAsignacion?.addEventListener('change', aplicarFiltrosControl);
     selectEstatus?.addEventListener('change', aplicarFiltrosControl);
 
     // Inicializar el contador llamando a aplicarFiltrosControl
@@ -249,8 +254,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
 
     if (filtrosPrevios) {
         if (inputSearch) inputSearch.value = filtrosPrevios.texto;
-        if (selectGrado) selectGrado.value = filtrosPrevios.grado;
-        if (selectPrograma) selectPrograma.value = filtrosPrevios.programa;
+        if (selectAsignacion) selectAsignacion.value = filtrosPrevios.asignacion;
         if (selectEstatus) selectEstatus.value = filtrosPrevios.estatus;
         
         aplicarFiltrosControl();
@@ -284,8 +288,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
 function obtenerEstadoFiltros() {
     return {
         texto: document.getElementById('filter-search')?.value || '',
-        grado: document.getElementById('filter-grado')?.value || '',
-        programa: document.getElementById('filter-programa')?.value || '',
+        asignacion: document.getElementById('filter-asignacion')?.value || '',
         estatus: document.getElementById('filter-estatus')?.value || ''
     };
 }

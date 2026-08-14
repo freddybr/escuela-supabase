@@ -16,10 +16,19 @@ export async function cargarVistaPeriodos(container) {
 
     const listaPeriodos = periodos || [];
 
+    const formatearFecha = (fechaStr) => {
+        if (!fechaStr) return '';
+        const parts = fechaStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return fechaStr;
+    };
+
     let htmlTemplate = `
         ${renderHeaderSeccion('periodos', 'Períodos', 'Años académicos por período.', `<div class="header-action-container"><button id="btn-nuevo-periodo" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
 
-        <div class="table-responsive table-clases-scroll">
+        <div class="table-responsive table-periodos-scroll">
             <table class="data-table" id="tabla-periodos">
                 <thead>
                     <tr>
@@ -34,8 +43,8 @@ export async function cargarVistaPeriodos(container) {
                         <tr data-id="${a.id}" class="fila-periodo" style="cursor:pointer;">
                             <td data-label="ID"><strong># ${a.id}</strong></td>
                             <td data-label="Período" class="text-bold">${a.anio_periodo}</td>
-                            <td data-label="Fecha Inicio"><span class="text-light">${a.anio_inicio || 'Sin inicio'}</span></td>
-                            <td data-label="Fecha Fin"><span class="text-light">${a.anio_fin || 'Sin fin'}</span></td>
+                            <td data-label="Fecha Inicio"><span class="text-light">${formatearFecha(a.anio_inicio) || 'Sin inicio'}</span></td>
+                            <td data-label="Fecha Fin"><span class="text-light">${formatearFecha(a.anio_fin) || 'Sin fin'}</span></td>
                         </tr>
                     `).join('')}
                 </tbody>

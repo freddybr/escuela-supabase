@@ -60,7 +60,7 @@ export async function cargarVistaAsignaciones(container) {
                 <tbody>
                     ${vistaAsignaciones.map(n => `
                         <tr data-id="${n.asigna_id}" class="fila-asignacion" style="cursor:pointer;">
-                            <td data-label="ID"><strong>${n.asigna_id}</strong></td>
+                            <td data-label="ID"><strong># ${n.asigna_id}</strong></td>
                             <td data-label="# Prog" class="text-bold">${n.programa_id}</td>
                             <td data-label="Programa" class="text-bold">${n.programa_tema || 'Sin programa'}</td>
                             <td data-label="Grado"><span class="text-light">${n.grado_numero || 'N/A'}</span></td>

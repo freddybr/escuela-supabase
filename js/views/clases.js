@@ -42,6 +42,7 @@ export async function cargarVistaClases(container) {
                     <th>Num</th>
                     <th>Tema</th>
                     <th>Objetivo</th>
+                    <th>Texto</th>
                     <th>Programa</th>
                 </tr>
             </thead>
@@ -54,11 +55,13 @@ export async function cargarVistaClases(container) {
                         <tr 
                         data-tema="${c.clase_tema || ''}" 
                         data-objetivo="${c.clase_objetivo || ''}"
+                        data-texto="${c.clase_texto || ''}"
                         data-programa="${nombrePrograma}"
                         >
                             <td data-label="Num"><strong># ${c.clase_num}</strong></td>
                             <td data-label="Tema" class="text-bold">${c.clase_tema}</td>
                             <td data-label="Objetivo"><span class="text-light">${c.clase_objetivo}</span></td>
+                            <td data-label="Texto"><span class="text-light">${c.clase_texto || ''}</span></td>
                             <td data-label="Programa"><span class="text-light">${nombrePrograma}</span></td>
                         </tr>
                         `;
@@ -82,9 +85,13 @@ export async function cargarVistaClases(container) {
         filas.forEach(row => {
             const tema = row.getAttribute('data-tema').toLowerCase();
             const objetivo = row.getAttribute('data-objetivo').toLowerCase();
+            const texto = (row.getAttribute('data-texto') || '').toLowerCase();
             const programa = row.getAttribute('data-programa');
 
-            const coincideTexto = !textoBusqueda || tema.includes(textoBusqueda) || objetivo.includes(textoBusqueda);
+            const coincideTexto = !textoBusqueda || 
+                                  tema.includes(textoBusqueda) || 
+                                  objetivo.includes(textoBusqueda) || 
+                                  texto.includes(textoBusqueda);
             const coincidePrograma = !programaSel || programa === programaSel;
 
             if (coincideTexto && coincidePrograma) {

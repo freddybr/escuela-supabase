@@ -99,7 +99,7 @@ export const ClaseService = {
     async getClasesWithProgramas() {
         return await supabase
             .from('clases')
-            .select('id, clase_num, clase_tema, clase_objetivo, programas(programa_tema), programa_id');
+            .select('id, clase_num, clase_tema, clase_objetivo, clase_texto, programas(programa_tema), programa_id');
     },
     async getClasesTemaYPrograma() {
         return await supabase.from('clases').select('id, clase_tema, programa_id');

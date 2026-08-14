@@ -732,11 +732,24 @@ body {
         align-items: stretch; /* Estira las celdas td/th al alto de la fila */
     }
 
-    /* Clases Table (4 Columnas) */
+    /* Clases Table (5 Columnas) */
     .table-clases-scroll .data-table thead tr,
     .table-clases-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 80px 220px 1fr 220px;
+        grid-template-columns: 80px 220px 1fr 180px 220px;
+        width: 100%;
+    }
+
+    /* Periodos Table (4 Columnas) - Compacta y alineada a la izquierda con bordes completos */
+    .table-periodos-scroll .data-table {
+        display: block;
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    .table-periodos-scroll .data-table thead tr,
+    .table-periodos-scroll .data-table tbody tr {
+        display: grid;
+        grid-template-columns: 80px 140px 160px 1fr;
         width: 100%;
     }
     
@@ -783,7 +796,7 @@ body {
     .table-asignaciones-scroll .data-table thead tr,
     .table-asignaciones-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 60px 80px 260px 130px 110px 130px 1fr 100px;
+        grid-template-columns: 60px 80px 1fr 130px 110px 130px 200px 100px;
         width: 100%;
     }
     
@@ -838,7 +851,7 @@ body {
         .table-profesores-scroll, .table-alumnos-scroll,
         .table-clases-scroll, .table-materias-scroll, .table-programas-scroll,
         .table-asignaciones-scroll, .table-grados-scroll, .table-control-scroll,
-        .table-asistencias-scroll, .asistencias-table-container {
+        .table-asistencias-scroll, .table-periodos-scroll, .asistencias-table-container {
             height: 100%;
             max-height: 100%;
         }

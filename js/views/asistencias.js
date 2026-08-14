@@ -84,12 +84,20 @@ export async function cargarVistaAsistencias(container) {
     const vista_asistencias = resVista.data || [];
     listaAlumnosGlobal = resAlumnos.data || [];
 
-    // Mapear asignaciones agregando los nombres resueltos
     listaAsignacionesGlobal = (resAsignaciones.data || []).map(asig => ({
         ...asig,
         prog_nombre: mapaProgramas.get(asig.programa_id) || `Programa #${asig.programa_id}`,
         grado_nombre: mapaGrados.get(asig.grado_id) || `Grado #${asig.grado_id}`
     }));
+
+    const formatearFecha = (fechaStr) => {
+        if (!fechaStr) return '';
+        const parts = fechaStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return fechaStr;
+    };
 
     // Ordenar vista asistencias por fecha y luego ID
     vista_asistencias.sort((a, b) => {
@@ -181,7 +189,7 @@ export async function cargarVistaAsistencias(container) {
                       class="fila-asistencia"
                       style="cursor: pointer;"
                     >
-                        <td data-label="Fecha"><strong># ${n.fecha ?? 'Sin fecha'}</strong></td>
+                        <td data-label="Fecha"><strong>${formatearFecha(n.fecha) || 'Sin fecha'}</strong></td>
                         <td data-label="Foto" style="text-align: center;">
                             <img src="${fotoUrl}" alt="${n.alumno || 'Alumno'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Alumno&backgroundColor=0284c7'">
                         </td>
