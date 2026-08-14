@@ -122,7 +122,15 @@ export async function cargarVistaAsistencias(container) {
     const profesoresUnicos = [...new Set(vista_asistencias.map(n => n.profesor).filter(Boolean))].sort();
 
     let htmlTemplate = `
-    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Registro diario de asistencias de alumnos.', `<div class="header-action-container"><button id="btn-nueva-asistencia" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
+    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Registro diario de asistencias de alumnos. Solo Asignaciones Activas', `
+        <div class="header-action-container" style="display: flex; align-items: center; gap: 12px;">
+            <span class="control-counter-badge">
+                <span class="counter-dot"></span>
+                <span id="asistencias-contador-texto">Cargando asistencias...</span>
+            </span>
+            <button id="btn-nueva-asistencia" class="btn-header-action" aria-label="Añadir">+</button>
+        </div>
+    `)}
 
     <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
         <div style="flex: 1 1 100%; min-width: 140px;">
@@ -303,41 +311,90 @@ export async function cargarVistaAsistencias(container) {
     const selectGrado = document.getElementById('filter-grado-asist');
     const selectProfesor = document.getElementById('filter-profesor');
 
-    const aplicarFiltrosAsistencias = () => {
+    const aplicarFiltrosAsistencias = (event) => {
+        if (event) {
+            const triggerId = event.target.id;
+            if (triggerId === 'filter-search-asist' && inputSearch?.value) {
+                if (selectAlumno) selectAlumno.value = '';
+                if (selectGrado) selectGrado.value = '';
+                if (selectProfesor) selectProfesor.value = '';
+            } else if (triggerId === 'filter-alumno' && selectAlumno?.value) {
+                if (inputSearch) inputSearch.value = '';
+                if (selectGrado) selectGrado.value = '';
+                if (selectProfesor) selectProfesor.value = '';
+            } else if (triggerId === 'filter-grado-asist' && selectGrado?.value) {
+                if (inputSearch) inputSearch.value = '';
+                if (selectAlumno) selectAlumno.value = '';
+                if (selectProfesor) selectProfesor.value = '';
+            } else if (triggerId === 'filter-profesor' && selectProfesor?.value) {
+                if (inputSearch) inputSearch.value = '';
+                if (selectAlumno) selectAlumno.value = '';
+                if (selectGrado) selectGrado.value = '';
+            }
+        }
+
         const textoBusqueda = (inputSearch?.value || '').toLowerCase();
         const alumnoSel = selectAlumno?.value || '';
         const gradoSel = selectGrado?.value || '';
         const profesorSel = selectProfesor?.value || '';
 
         const filas = document.querySelectorAll('#tabla-asistencias tbody tr');
+        const countTotal = filas.length;
+        let countVisible = 0;
 
         filas.forEach(row => {
-            const fecha = row.getAttribute('data-fecha').toLowerCase();
-            const programa = row.getAttribute('data-programa').toLowerCase();
-            const clase = row.getAttribute('data-clase').toLowerCase();
-            const observaciones = row.getAttribute('data-observaciones').toLowerCase();
+            const fechaVal = row.getAttribute('data-fecha') || '';
+            const programaVal = row.getAttribute('data-programa') || '';
+            const claseVal = row.getAttribute('data-clase') || '';
+            const observacionesVal = row.getAttribute('data-observaciones') || '';
 
-            const alumno = row.getAttribute('data-alumno');
-            const grado = row.getAttribute('data-grado');
-            const profesor = row.getAttribute('data-profesor');
+            const alumno = row.getAttribute('data-alumno') || '';
+            const grado = row.getAttribute('data-grado') || '';
+            const profesor = row.getAttribute('data-profesor') || '';
 
-            const coincideTexto = !textoBusqueda || fecha.includes(textoBusqueda) || programa.includes(textoBusqueda) || clase.includes(textoBusqueda) || observaciones.includes(textoBusqueda);
+            const fechaFormateada = formatearFecha(fechaVal).toLowerCase();
+            const fechaOriginal = fechaVal.toLowerCase();
+            const programa = programaVal.toLowerCase();
+            const clase = claseVal.toLowerCase();
+            const observaciones = observacionesVal.toLowerCase();
+
+            const coincideTexto = !textoBusqueda || 
+                                  fechaFormateada.includes(textoBusqueda) || 
+                                  fechaOriginal.includes(textoBusqueda) || 
+                                  programa.includes(textoBusqueda) || 
+                                  clase.includes(textoBusqueda) || 
+                                  observaciones.includes(textoBusqueda);
+
             const coincideAlumno = !alumnoSel || alumno === alumnoSel;
             const coincideGrado = !gradoSel || grado === gradoSel;
             const coincideProfesor = !profesorSel || profesor === profesorSel;
 
             if (coincideTexto && coincideAlumno && coincideGrado && coincideProfesor) {
                 row.style.removeProperty('display');
+                countVisible++;
             } else {
                 row.style.setProperty('display', 'none', 'important');
             }
         });
+
+        const contadorElemento = document.getElementById('asistencias-contador-texto');
+        if (contadorElemento) {
+            const hasFilter = textoBusqueda || alumnoSel || gradoSel || profesorSel;
+            if (!hasFilter) {
+                contadorElemento.textContent = `${countTotal} asistencias`;
+            } else {
+                contadorElemento.textContent = `${countVisible} de ${countTotal} asistencias`;
+            }
+        }
     };
 
     inputSearch?.addEventListener('input', aplicarFiltrosAsistencias);
     selectAlumno?.addEventListener('change', aplicarFiltrosAsistencias);
     selectGrado?.addEventListener('change', aplicarFiltrosAsistencias);
     selectProfesor?.addEventListener('change', aplicarFiltrosAsistencias);
+
+    // Inicializar el contador al cargar la vista
+    aplicarFiltrosAsistencias();
 }
 
 // Paso 1: Al cambiar Asignación desbloquea SOLO Registro Control y resetea Alumnos
