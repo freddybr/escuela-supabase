@@ -100,9 +100,9 @@ export async function cargarVistaClases(container) {
             const coincidePrograma = !programaSel || programa === programaSel;
 
             if (coincideTexto && coincidePrograma) {
-                row.style.display = '';
+                row.style.removeProperty('display');
             } else {
-                row.style.display = 'none';
+                row.style.setProperty('display', 'none', 'important');
             }
         });
     };
