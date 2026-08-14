@@ -24,7 +24,7 @@ export async function cargarVistaClases(container) {
                 type="text" 
                 id="filter-search-clases" 
                 class="form-control" 
-                placeholder="Buscar Tema u Objetivo..." 
+                placeholder="Buscar Número, Tema, Objetivo, Texto..." 
             >
         </div>
         <div style="width: 220px;">
@@ -53,6 +53,7 @@ export async function cargarVistaClases(container) {
                         const nombrePrograma = c.programas?.programa_tema || 'Sin programa';
                         return `
                         <tr 
+                        data-num="${c.clase_num || ''}"
                         data-tema="${c.clase_tema || ''}" 
                         data-objetivo="${c.clase_objetivo || ''}"
                         data-texto="${c.clase_texto || ''}"
@@ -83,12 +84,16 @@ export async function cargarVistaClases(container) {
         const filas = document.querySelectorAll('#tabla-clases tbody tr');
 
         filas.forEach(row => {
+            const num = (row.getAttribute('data-num') || '').toLowerCase();
             const tema = row.getAttribute('data-tema').toLowerCase();
             const objetivo = row.getAttribute('data-objetivo').toLowerCase();
             const texto = (row.getAttribute('data-texto') || '').toLowerCase();
             const programa = row.getAttribute('data-programa');
 
             const coincideTexto = !textoBusqueda || 
+                                  num.includes(textoBusqueda) || 
+                                  `#${num}`.includes(textoBusqueda) || 
+                                  `# ${num}`.includes(textoBusqueda) || 
                                   tema.includes(textoBusqueda) || 
                                   objetivo.includes(textoBusqueda) || 
                                   texto.includes(textoBusqueda);
