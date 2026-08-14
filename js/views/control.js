@@ -217,13 +217,20 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         let countVisible = 0;
 
         filas.forEach(row => {
-            const fecha = (row.getAttribute('data-fecha') || '').toLowerCase();
+            const fechaVal = row.getAttribute('data-fecha') || '';
             const clase = (row.getAttribute('data-clase-tema') || '').toLowerCase();
             const profesor = (row.getAttribute('data-profesor') || '').toLowerCase();
             const asignaId = row.getAttribute('data-asigna-id');
             const estatus = row.getAttribute('data-estatus');
 
-            const coincideTexto = !textoBusqueda || fecha.includes(textoBusqueda) || clase.includes(textoBusqueda) || profesor.includes(textoBusqueda);
+            const fechaFormateada = formatearFecha(fechaVal).toLowerCase();
+            const fechaOriginal = fechaVal.toLowerCase();
+
+            const coincideTexto = !textoBusqueda || 
+                                  fechaFormateada.includes(textoBusqueda) || 
+                                  fechaOriginal.includes(textoBusqueda) || 
+                                  clase.includes(textoBusqueda) || 
+                                  profesor.includes(textoBusqueda);
             const coincideAsignacion = !asignaSel || asignaId === asignaSel;
             const coincideEstatus = !estatusSel || estatus === estatusSel;
 
