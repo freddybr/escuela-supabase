@@ -362,3 +362,9 @@ body {
     width: 20px;
     height: 20px;
 }
+
+/* Hide browser native password reveal button (e.g. Edge) */
+#login-password::-ms-reveal,
+#login-password::-ms-clear {
+    display: none;
+}

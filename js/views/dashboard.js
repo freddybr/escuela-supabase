@@ -562,7 +562,10 @@ export async function cargarVistaDashboard(container) {
 
                                     return `
                                     <tr>
-                                        <td>${row.grado}</td>
+                                        <td>
+                                            <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
+                                            ${row.grado}
+                                        </td>
                                         <td class="text-bold">${row.clase_num ?? '-'}</td>
                                         <td>${row.clase}</td>
                                         <td style="width: 40px; text-align: center; padding-right: 0;">
@@ -599,7 +602,10 @@ export async function cargarVistaDashboard(container) {
 
                                     return `
                                     <tr>
-                                        <td>${row.grado}</td>
+                                        <td>
+                                            <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
+                                            ${row.grado}
+                                        </td>
                                         <td class="text-bold">${row.clase_num ?? '-'}</td>
                                         <td>${row.clase}</td>
                                         <td style="width: 40px; text-align: center; padding-right: 0;">
@@ -631,17 +637,26 @@ export async function cargarVistaDashboard(container) {
                         </div>
                         <div class="kpi-card">
                             <h3>Programas Disponibles</h3>
-                            <div class="kpi-value">${programasDisponiblesTotales}</div>
+                            <div class="kpi-value" style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: var(--success, #10b981); box-shadow: 0 0 8px var(--success, #10b981);"></span>
+                                ${programasDisponiblesTotales}
+                            </div>
                             <p class="kpi-caption">Contenidos listos para asignar.</p>
                         </div>
                         <div class="kpi-card">
                             <h3>Programas en Elaboración</h3>
-                            <div class="kpi-value">${programasElaborando}</div>
+                            <div class="kpi-value" style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: var(--warning, #f59e0b); box-shadow: 0 0 8px var(--warning, #f59e0b);"></span>
+                                ${programasElaborando}
+                            </div>
                             <p class="kpi-caption">Contenidos en desarrollo.</p>
                         </div>
                         <div class="kpi-card">
                             <h3>Programas Cerrados</h3>
-                            <div class="kpi-value">${programasCerrados}</div>
+                            <div class="kpi-value" style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: var(--danger, #ef4444); box-shadow: 0 0 8px var(--danger, #ef4444);"></span>
+                                ${programasCerrados}
+                            </div>
                             <p class="kpi-caption">Programas finalizados o archivados.</p>
                         </div>
                     </div>
@@ -736,19 +751,19 @@ export async function cargarVistaDashboard(container) {
                         <div class="table-responsive">
                             <table class="small-table">
                                 <thead>
-                                    <tr><th>Programa</th><th>Grado</th><th class="text-right">Vista</th><th class="text-right">Programada</th><th class="text-right">Pendiente</th></tr>
+                                    <tr><th>Programa</th><th class="text-center">Grado</th><th class="text-center">Vista</th><th class="text-center">Programada</th><th class="text-center">Pendiente</th></tr>
                                 </thead>
                                 <tbody>
                                     ${estadoPorProgramaGradoRows.map(row => `
                                         <tr>
                                             <td>${row.programa}</td>
-                                            <td>
+                                            <td class="text-center">
                                                 <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
                                                 ${row.grado}
                                             </td>
-                                            <td class="text-right">${row.Vista}</td>
-                                            <td class="text-right">${row.Programada}</td>
-                                            <td class="text-right">${row.Pendiente}</td>
+                                            <td class="text-center">${row.Vista}</td>
+                                            <td class="text-center">${row.Programada}</td>
+                                            <td class="text-center">${row.Pendiente}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -762,8 +777,8 @@ export async function cargarVistaDashboard(container) {
                                 <thead>
                                     <tr>
                                         <th>Grado</th>
-                                        <th class="text-right">Último (${periodoAnteriorNombre || 'N/A'})</th>
-                                        <th class="text-right">Actual (${periodoNombre})</th>
+                                        <th class="text-center">Último (${periodoAnteriorNombre || 'N/A'})</th>
+                                        <th class="text-center">Actual (${periodoNombre})</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -773,8 +788,8 @@ export async function cargarVistaDashboard(container) {
                                                 <span style="margin-right: 8px; font-size: 1.1rem; vertical-align: middle;">${getGradeIcon(row.grado)}</span>
                                                 ${row.grado}
                                             </td>
-                                            <td class="text-right">${row.promedioUltimo}</td>
-                                            <td class="text-right">${row.promedioActual}</td>
+                                            <td class="text-center">${row.promedioUltimo}</td>
+                                            <td class="text-center">${row.promedioActual}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>

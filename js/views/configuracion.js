@@ -51,11 +51,41 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     const profesorInfo = resProfesorPerfil?.data;
     const esPropietario = userEmail.toLowerCase() === 'freddybr.igle@gmail.com';
     const esSuperadmin = profesorInfo && profesorInfo.profe_rol?.toLowerCase() === 'superadmin';
-    const tieneAccesoSeguridad = esPropietario || esSuperadmin;
+    const esSuperadminGeneral = esPropietario || esSuperadmin;
+    const tieneAccesoSeguridad = !!user;
 
     // Obtener valores guardados en localStorage
     const savedTheme = safeLocalStorage.getItem('theme') || 'light';
     const savedTimeout = safeLocalStorage.getItem('inactiveTimeout') || '0'; // 0 = Nunca
+
+    let selectUsuarioHtml = '';
+    if (esSuperadminGeneral) {
+        const usuariosOptions = [];
+        usuariosOptions.push(`<option value="${userEmail}" selected>Mi propia cuenta (${userEmail})</option>`);
+
+        // Profesores
+        _datosPerfil.profesores.forEach(p => {
+            if (p.profe_email && p.profe_email.toLowerCase() !== userEmail.toLowerCase()) {
+                usuariosOptions.push(`<option value="${p.profe_email}">Profesor: ${p.profe_nombre} (${p.profe_email})</option>`);
+            }
+        });
+
+        // Alumnos
+        _datosPerfil.alumnos.forEach(a => {
+            if (a.alumno_email && a.alumno_email.toLowerCase() !== userEmail.toLowerCase()) {
+                usuariosOptions.push(`<option value="${a.alumno_email}">Alumno: ${a.alumno_nombre} (${a.alumno_email})</option>`);
+            }
+        });
+
+        selectUsuarioHtml = `
+        <div class="form-row">
+            <label for="change-password-target-user" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Seleccionar Usuario</label>
+            <select id="change-password-target-user" class="form-select">
+                ${usuariosOptions.join('')}
+            </select>
+        </div>
+        `;
+    }
 
     let htmlTemplate = `
     ${renderHeaderSeccion('configuracion', 'Configuración de Sistema', 'Gestione sus datos de perfil, seguridad de cuenta y personalice la apariencia.')}
@@ -158,6 +188,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
                         Cambiar Contraseña
                     </div>
                     <form id="form-change-password" style="display: flex; flex-direction: column; gap: 16px;">
+                        ${selectUsuarioHtml}
                         <div class="form-row">
                             <label for="new-password" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Nueva Contraseña</label>
                             <input type="password" id="new-password" class="form-control" placeholder="Escriba su nueva contraseña" required minlength="6">
@@ -393,12 +424,21 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
             return;
         }
 
+        const selectTargetUser = document.getElementById('change-password-target-user');
+        const targetEmail = selectTargetUser ? selectTargetUser.value : userEmail;
+
         try {
-            const { error } = await AuthService.updatePassword(newPass);
-            if (error) {
-                mostrarMensaje('error', 'Error al actualizar: ' + error.message);
+            let res;
+            if (targetEmail.toLowerCase() === userEmail.toLowerCase()) {
+                res = await AuthService.updatePassword(newPass);
             } else {
-                mostrarMensaje('success', 'Contraseña actualizada de forma segura.');
+                res = await AuthService.updatePasswordOtroUsuario(targetEmail, newPass);
+            }
+
+            if (res.error) {
+                mostrarMensaje('error', 'Error al actualizar: ' + res.error.message);
+            } else {
+                mostrarMensaje('success', `Contraseña de ${targetEmail} actualizada correctamente.`);
                 newPasswordInput.value = '';
                 confirmPasswordInput.value = '';
             }

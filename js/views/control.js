@@ -66,7 +66,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         <div style="width: 320px; max-width: 100%;">
             <select id="filter-asignacion" class="form-select">
                 <option value="">Asignaciones</option>
-                ${listaAsignaciones.map(asig => `<option value="${asig.asigna_id}">#${asig.asigna_id} - Prog: ${asig.programa_tema} | Grado: ${asig.grado_numero}</option>`).join('')}
+                ${listaAsignaciones.filter(asig => asig.asigna_estatus === 'Activa').map(asig => `<option value="${asig.asigna_id}">#${asig.asigna_id} - Prog: ${asig.programa_tema} | Grado: ${asig.grado_numero}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">

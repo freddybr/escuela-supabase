@@ -118,6 +118,7 @@ export async function cargarVistaAsistencias(container) {
 
     // Filtros
     const alumnosUnicos = [...new Set(vista_asistencias.map(n => n.alumno).filter(Boolean))].sort();
+    const programasUnicos = [...new Set(vista_asistencias.map(n => n.programa).filter(Boolean))].sort();
     const gradosUnicos = [...new Set(vista_asistencias.map(n => n.grado).filter(Boolean))].sort();
     const profesoresUnicos = [...new Set(vista_asistencias.map(n => n.profesor).filter(Boolean))].sort();
 
@@ -140,6 +141,12 @@ export async function cargarVistaAsistencias(container) {
             <select id="filter-alumno" class="form-select">
                 <option value="">Alumnos</option>
                 ${alumnosUnicos.map(alumno => `<option value="${alumno}">${alumno}</option>`).join('')}
+            </select>
+        </div>
+        <div style="width: 180px;">
+            <select id="filter-programa-asist" class="form-select">
+                <option value="">Programas</option>
+                ${programasUnicos.map(prog => `<option value="${prog}">${prog}</option>`).join('')}
             </select>
         </div>
         <div style="width: 180px;">
@@ -308,6 +315,7 @@ export async function cargarVistaAsistencias(container) {
     // Filtros programáticos
     const inputSearch = document.getElementById('filter-search-asist');
     const selectAlumno = document.getElementById('filter-alumno');
+    const selectPrograma = document.getElementById('filter-programa-asist');
     const selectGrado = document.getElementById('filter-grado-asist');
     const selectProfesor = document.getElementById('filter-profesor');
 
@@ -316,25 +324,35 @@ export async function cargarVistaAsistencias(container) {
             const triggerId = event.target.id;
             if (triggerId === 'filter-search-asist' && inputSearch?.value) {
                 if (selectAlumno) selectAlumno.value = '';
+                if (selectPrograma) selectPrograma.value = '';
                 if (selectGrado) selectGrado.value = '';
                 if (selectProfesor) selectProfesor.value = '';
             } else if (triggerId === 'filter-alumno' && selectAlumno?.value) {
                 if (inputSearch) inputSearch.value = '';
+                if (selectPrograma) selectPrograma.value = '';
+                if (selectGrado) selectGrado.value = '';
+                if (selectProfesor) selectProfesor.value = '';
+            } else if (triggerId === 'filter-programa-asist' && selectPrograma?.value) {
+                if (inputSearch) inputSearch.value = '';
+                if (selectAlumno) selectAlumno.value = '';
                 if (selectGrado) selectGrado.value = '';
                 if (selectProfesor) selectProfesor.value = '';
             } else if (triggerId === 'filter-grado-asist' && selectGrado?.value) {
                 if (inputSearch) inputSearch.value = '';
                 if (selectAlumno) selectAlumno.value = '';
+                if (selectPrograma) selectPrograma.value = '';
                 if (selectProfesor) selectProfesor.value = '';
             } else if (triggerId === 'filter-profesor' && selectProfesor?.value) {
                 if (inputSearch) inputSearch.value = '';
                 if (selectAlumno) selectAlumno.value = '';
+                if (selectPrograma) selectPrograma.value = '';
                 if (selectGrado) selectGrado.value = '';
             }
         }
 
         const textoBusqueda = (inputSearch?.value || '').toLowerCase();
         const alumnoSel = selectAlumno?.value || '';
+        const programaSel = selectPrograma?.value || '';
         const gradoSel = selectGrado?.value || '';
         const profesorSel = selectProfesor?.value || '';
 
@@ -366,10 +384,11 @@ export async function cargarVistaAsistencias(container) {
                                   observaciones.includes(textoBusqueda);
 
             const coincideAlumno = !alumnoSel || alumno === alumnoSel;
+            const coincidePrograma = !programaSel || programaVal === programaSel;
             const coincideGrado = !gradoSel || grado === gradoSel;
             const coincideProfesor = !profesorSel || profesor === profesorSel;
 
-            if (coincideTexto && coincideAlumno && coincideGrado && coincideProfesor) {
+            if (coincideTexto && coincideAlumno && coincidePrograma && coincideGrado && coincideProfesor) {
                 row.style.removeProperty('display');
                 countVisible++;
             } else {
@@ -379,7 +398,7 @@ export async function cargarVistaAsistencias(container) {
 
         const contadorElemento = document.getElementById('asistencias-contador-texto');
         if (contadorElemento) {
-            const hasFilter = textoBusqueda || alumnoSel || gradoSel || profesorSel;
+            const hasFilter = textoBusqueda || alumnoSel || programaSel || gradoSel || profesorSel;
             if (!hasFilter) {
                 contadorElemento.textContent = `${countTotal} asistencias`;
             } else {
@@ -390,6 +409,7 @@ export async function cargarVistaAsistencias(container) {
 
     inputSearch?.addEventListener('input', aplicarFiltrosAsistencias);
     selectAlumno?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectPrograma?.addEventListener('change', aplicarFiltrosAsistencias);
     selectGrado?.addEventListener('change', aplicarFiltrosAsistencias);
     selectProfesor?.addEventListener('change', aplicarFiltrosAsistencias);
 

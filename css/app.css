@@ -1073,6 +1073,10 @@ body {
     text-align: right;
 }
 
+.text-center {
+    text-align: center;
+}
+
 .kpi-caption {
     margin-top: 8px;
     color: var(--text-muted);

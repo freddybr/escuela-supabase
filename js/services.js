@@ -11,6 +11,12 @@ export const AuthService = {
     },
     async updatePassword(password) {
         return await supabase.auth.updateUser({ password });
+    },
+    async updatePasswordOtroUsuario(userEmail, newPassword) {
+        return await supabase.rpc('cambiar_password_usuario', {
+            user_email: userEmail,
+            nueva_contrasena: newPassword
+        });
     }
 };
 
