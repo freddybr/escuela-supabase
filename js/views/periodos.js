@@ -89,7 +89,7 @@ export async function cargarVistaPeriodos(container) {
 
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nuevo-periodo').addEventListener('click', () => abrirModalPeriodo());
+    document.getElementById('btn-nuevo-periodo')?.addEventListener('click', () => abrirModalPeriodo());
 
     document.querySelectorAll('.fila-periodo').forEach(row => {
         row.addEventListener('click', async () => {

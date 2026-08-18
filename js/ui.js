@@ -3,6 +3,10 @@ export const appState = {
 };
 
 export function renderHeaderSeccion(key, titulo, subtitulo, acciones = '') {
+    if (window.usuarioEsDocente && key !== 'control' && key !== 'asistencias') {
+        acciones = '';
+    }
+
     const icons = {
         dashboard: `<svg class="header-icon-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`,
         materias: `<svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,

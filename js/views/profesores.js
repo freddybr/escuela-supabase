@@ -148,7 +148,7 @@ export async function cargarVistaProfesores(container) {
 
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nuevo-profesor').addEventListener('click', () => abrirModalProfesor());
+    document.getElementById('btn-nuevo-profesor')?.addEventListener('click', () => abrirModalProfesor());
 
     document.querySelectorAll('.fila-profesor').forEach(row => {
         row.addEventListener('click', async () => {

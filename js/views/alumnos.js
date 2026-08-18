@@ -154,7 +154,7 @@ export async function cargarVistaAlumnos(container) {
 
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nuevo-alumno').addEventListener('click', () => abrirModalAlumno());
+    document.getElementById('btn-nuevo-alumno')?.addEventListener('click', () => abrirModalAlumno());
 
     document.querySelectorAll('.fila-alumno').forEach(row => {
         row.addEventListener('click', async () => {

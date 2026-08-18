@@ -96,11 +96,17 @@ async function checkUser() {
 
     let fotoUrl = null;
 
-    // 1. Buscar si el usuario registrado existe en la tabla de profesores
-    const { data: profe } = await ProfesorService.getProfesorImagenByEmail(user.email);
+    // 1. Buscar si el usuario registrado existe en la tabla de profesores (con todos los datos)
+    const { data: profe } = await ProfesorService.getProfesorByEmail(user.email);
 
-    if (profe && profe.profe_imagen_url && profe.profe_imagen_url.trim() !== '') {
-        fotoUrl = profe.profe_imagen_url;
+    if (profe) {
+        if (profe.profe_imagen_url && profe.profe_imagen_url.trim() !== '') {
+            fotoUrl = profe.profe_imagen_url;
+        }
+        
+        // Asignar rol docente si corresponde
+        const esDocente = profe.profe_rol && profe.profe_rol.trim().toLowerCase() === 'docente';
+        window.usuarioEsDocente = !!esDocente;
     } else {
         // 2. Si no es profesor, buscar si existe en la tabla de alumnos
         const { data: alumno } = await AlumnoService.getAlumnoImagenByEmail(user.email);
@@ -108,6 +114,14 @@ async function checkUser() {
         if (alumno && alumno.alumno_imagen_url && alumno.alumno_imagen_url.trim() !== '') {
             fotoUrl = alumno.alumno_imagen_url;
         }
+        window.usuarioEsDocente = false;
+    }
+
+    if (window.usuarioEsDocente) {
+        document.body.classList.add('user-docente');
+        setupDocenteRestrictionObserver();
+    } else {
+        document.body.classList.remove('user-docente');
     }
 
     // 3. Crear el fallback de iniciales por si no tiene foto asignada
@@ -201,4 +215,41 @@ try {
             <p>${error.message || error}</p>
         </div>
     `;
+}
+
+let observerInicializado = false;
+function setupDocenteRestrictionObserver() {
+    if (observerInicializado) return;
+    observerInicializado = true;
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const target = mutation.target;
+                if (target.classList.contains('modal') && target.style.display === 'flex') {
+                    const modalId = target.id;
+                    if (modalId !== 'modal-control' && modalId !== 'modal-asistencia') {
+                        // Deshabilitar todos los inputs, selects y textareas
+                        const inputs = target.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            input.disabled = true;
+                        });
+                        
+                        // Ocultar botones de guardar y eliminar
+                        const saveBtn = target.querySelector('.btn-primary, #btn-guardar-alumno, #btn-guardar-asignacion, #btn-guardar-materia, #btn-guardar-periodo, #btn-guardar-profesor, #btn-guardar-programa');
+                        if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+                        
+                        const deleteBtn = target.querySelector('.btn-danger, #btn-borrar-alumno, #btn-borrar-asignacion, #btn-borrar-materia, #btn-borrar-periodo, #btn-borrar-profesor, #btn-borrar-programa');
+                        if (deleteBtn) deleteBtn.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            }
+        });
+    });
+
+    observer.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ['style']
+    });
 }

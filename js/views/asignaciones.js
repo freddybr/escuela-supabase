@@ -133,7 +133,7 @@ export async function cargarVistaAsignaciones(container) {
 
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nueva-asignacion').addEventListener('click', () => abrirModalAsignacion());
+    document.getElementById('btn-nueva-asignacion')?.addEventListener('click', () => abrirModalAsignacion());
 
     document.querySelectorAll('.fila-asignacion').forEach(row => {
         row.addEventListener('click', async () => {

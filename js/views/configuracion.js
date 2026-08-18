@@ -53,6 +53,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     const esSuperadmin = profesorInfo && profesorInfo.profe_rol?.toLowerCase() === 'superadmin';
     const esSuperadminGeneral = esPropietario || esSuperadmin;
     const tieneAccesoSeguridad = !!user;
+    const esDocente = !!window.usuarioEsDocente;
 
     // Obtener valores guardados en localStorage
     const savedTheme = safeLocalStorage.getItem('theme') || 'light';
@@ -93,12 +94,14 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     <div class="config-layout">
         <!-- BARRA LATERAL DE CONFIGURACIÓN -->
         <div class="config-sidebar">
+            ${esDocente ? '' : `
             <button type="button" class="config-tab-btn active" data-target="section-perfil">
                 <svg class="config-tab-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Perfil</span>
             </button>
+            `}
             ${tieneAccesoSeguridad ? `
-            <button type="button" class="config-tab-btn" data-target="section-cuenta">
+            <button type="button" class="config-tab-btn ${esDocente ? 'active' : ''}" data-target="section-cuenta">
                 <svg class="config-tab-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <span>Seguridad</span>
             </button>
@@ -113,7 +116,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
         <div class="config-content">
             
             <!-- 1. SECCIÓN PERFIL -->
-            <div id="section-perfil" class="config-section active">
+            <div id="section-perfil" class="config-section ${esDocente ? '' : 'active'}">
                 <h3 class="config-section-title">Asociación de Perfil</h3>
                 <p class="config-section-subtitle">Gestión e inyección de fotografías para usuarios en la base de datos.</p>
                 
@@ -157,7 +160,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
 
             <!-- 2. SECCIÓN SEGURIDAD Y CUENTA -->
             ${tieneAccesoSeguridad ? `
-            <div id="section-cuenta" class="config-section">
+            <div id="section-cuenta" class="config-section ${esDocente ? 'active' : ''}">
                 <h3 class="config-section-title">Seguridad y Cuenta</h3>
                 <p class="config-section-subtitle">Gestione la autenticación, contraseña y la sesión de su usuario.</p>
                 

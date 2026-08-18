@@ -66,7 +66,7 @@ export async function cargarVistaMaterias(container) {
     `;
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nueva-materia').addEventListener('click', () => abrirModalMateria());
+    document.getElementById('btn-nueva-materia')?.addEventListener('click', () => abrirModalMateria());
 
     document.querySelectorAll('.fila-materia').forEach(row => {
         row.addEventListener('click', async () => {

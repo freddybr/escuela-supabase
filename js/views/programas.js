@@ -110,7 +110,7 @@ export async function cargarVistaProgramas(container) {
     `;
     container.innerHTML = htmlTemplate;
 
-    document.getElementById('btn-nuevo-programa').addEventListener('click', () => abrirModalPrograma());
+    document.getElementById('btn-nuevo-programa')?.addEventListener('click', () => abrirModalPrograma());
 
     document.querySelectorAll('.fila-programa').forEach(row => {
         row.addEventListener('click', async () => {
