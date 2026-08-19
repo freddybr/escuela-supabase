@@ -138,8 +138,24 @@ export const AlumnoService = {
             .limit(1)
             .maybeSingle();
     },
-    async updateAlumnoImagen(id, base64Url) {
-        return await supabase.from('alumnos').update({ alumno_imagen_url: base64Url }).eq('id', id);
+    async updateAlumnoImagen(id, file) {
+        try {
+            const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
+            const fileName = `${id}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('fotos-alumnos')
+                .upload(fileName, file, {
+                    upsert: true,
+                    contentType: file.type
+                });
+            if (uploadError) return { error: uploadError };
+            const { data: { publicUrl } } = supabase.storage
+                .from('fotos-alumnos')
+                .getPublicUrl(fileName);
+            return await supabase.from('alumnos').update({ alumno_imagen_url: publicUrl }).eq('id', id);
+        } catch (err) {
+            return { error: err };
+        }
     },
     async deleteAlumno(id) {
         return await supabase.from('alumnos').delete().eq('id', id);
@@ -178,8 +194,24 @@ export const ProfesorService = {
             .limit(1)
             .maybeSingle();
     },
-    async updateProfesorImagen(id, base64Url) {
-        return await supabase.from('profesores').update({ profe_imagen_url: base64Url }).eq('id', id);
+    async updateProfesorImagen(id, file) {
+        try {
+            const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
+            const fileName = `${id}_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('fotos-profesores')
+                .upload(fileName, file, {
+                    upsert: true,
+                    contentType: file.type
+                });
+            if (uploadError) return { error: uploadError };
+            const { data: { publicUrl } } = supabase.storage
+                .from('fotos-profesores')
+                .getPublicUrl(fileName);
+            return await supabase.from('profesores').update({ profe_imagen_url: publicUrl }).eq('id', id);
+        } catch (err) {
+            return { error: err };
+        }
     },
     async deleteProfesor(id) {
         return await supabase.from('profesores').delete().eq('id', id);

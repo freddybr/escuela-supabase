@@ -367,7 +367,7 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
         }
     };
 
-    const ejecutarSubidaFoto = () => {
+    const ejecutarSubidaFoto = async () => {
         const tipo = selTipo?.value;
         const idRegistro = selRegistro?.value;
         const archivo = inputFile?.files[0];
@@ -382,25 +382,28 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-            const base64Url = e.target.result;
-            
-            const { error } = tipo === 'profesor'
-                ? await ProfesorService.updateProfesorImagen(idRegistro, base64Url)
-                : await AlumnoService.updateAlumnoImagen(idRegistro, base64Url);
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+        }
 
-            if (error) {
-                mostrarMensaje('error', 'Error al guardar la fotografía: ' + error.message);
-                return;
-            }
+        const { error } = tipo === 'profesor'
+            ? await ProfesorService.updateProfesorImagen(idRegistro, archivo)
+            : await AlumnoService.updateAlumnoImagen(idRegistro, archivo);
 
-            mostrarMensaje('success', 'Fotografía actualizada correctamente');
-            if (checkUserCallback) checkUserCallback(); // Actualizar avatar en la cabecera si es el usuario en sesión
-            cargarVistaConfiguracion(containerElement, checkUserCallback);
-        };
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = 'Guardar Fotografía';
+        }
 
-        reader.readAsDataURL(archivo);
+        if (error) {
+            mostrarMensaje('error', 'Error al guardar la fotografía: ' + error.message);
+            return;
+        }
+
+        mostrarMensaje('success', 'Fotografía actualizada correctamente');
+        if (checkUserCallback) checkUserCallback(); // Actualizar avatar en la cabecera si es el usuario en sesión
+        cargarVistaConfiguracion(containerElement, checkUserCallback);
     };
 
     selTipo?.addEventListener('change', cambiarTipoPerfil);
