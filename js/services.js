@@ -140,8 +140,21 @@ export const AlumnoService = {
     },
     async updateAlumnoImagen(id, file) {
         try {
+            // 1. Obtener el nombre del alumno para seguir la convención del proyecto
+            const { data: alumno } = await supabase.from('alumnos').select('alumno_nombre').eq('id', id).maybeSingle();
+            const nombreBase = alumno && alumno.alumno_nombre ? alumno.alumno_nombre : 'alumno';
+            const nombreNormalizado = nombreBase
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+                .replace(/[^a-z0-9\s-_]/g, "")   // Quitar caracteres especiales
+                .trim()
+                .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
+
             const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
-            const fileName = `${id}_${Date.now()}.${fileExt}`;
+            const fileName = `${nombreNormalizado}_alumno_${id}.${fileExt}`;
+
+            // 2. Subir el archivo (con upsert: true para sobreescribir si ya existe la misma extensión)
             const { error: uploadError } = await supabase.storage
                 .from('fotos-alumnos')
                 .upload(fileName, file, {
@@ -149,9 +162,12 @@ export const AlumnoService = {
                     contentType: file.type
                 });
             if (uploadError) return { error: uploadError };
+
+            // 3. Obtener URL pública
             const { data: { publicUrl } } = supabase.storage
                 .from('fotos-alumnos')
                 .getPublicUrl(fileName);
+
             return await supabase.from('alumnos').update({ alumno_imagen_url: publicUrl }).eq('id', id);
         } catch (err) {
             return { error: err };
@@ -196,8 +212,21 @@ export const ProfesorService = {
     },
     async updateProfesorImagen(id, file) {
         try {
+            // 1. Obtener el nombre del profesor para mantener la convención del proyecto
+            const { data: profe } = await supabase.from('profesores').select('profe_nombre').eq('id', id).maybeSingle();
+            const nombreBase = profe && profe.profe_nombre ? profe.profe_nombre : 'profesor';
+            const nombreNormalizado = nombreBase
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+                .replace(/[^a-z0-9\s-_]/g, "")   // Quitar caracteres especiales
+                .trim()
+                .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
+
             const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
-            const fileName = `${id}_${Date.now()}.${fileExt}`;
+            const fileName = `${nombreNormalizado}_profesor_${id}.${fileExt}`;
+
+            // 2. Subir al bucket
             const { error: uploadError } = await supabase.storage
                 .from('fotos-profesores')
                 .upload(fileName, file, {
@@ -205,9 +234,12 @@ export const ProfesorService = {
                     contentType: file.type
                 });
             if (uploadError) return { error: uploadError };
+
+            // 3. Obtener URL pública
             const { data: { publicUrl } } = supabase.storage
                 .from('fotos-profesores')
                 .getPublicUrl(fileName);
+
             return await supabase.from('profesores').update({ profe_imagen_url: publicUrl }).eq('id', id);
         } catch (err) {
             return { error: err };
