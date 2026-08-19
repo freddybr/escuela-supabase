@@ -773,7 +773,7 @@ body {
     .table-programas-scroll .data-table thead tr,
     .table-programas-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 50px 140px 220px 1fr 120px 110px;
+        grid-template-columns: 70px 140px 220px 1fr 120px 110px;
         width: 100%;
     }
     
@@ -818,11 +818,25 @@ body {
     .table-profesores-scroll .data-table thead tr,
     .table-profesores-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 50px 80px 140px 200px 1fr 130px 110px 100px;
+        grid-template-columns: 70px 80px 140px 200px 1fr 130px 110px 100px;
         width: 100%;
     }
-    .table-profesores-scroll .badge {
+    .table-profesores-scroll .badge,
+    .table-alumnos-scroll .badge {
         text-transform: none !important;
+        white-space: nowrap !important;
+    }
+    
+    .table-asistencias-scroll td[data-label="Grado"] {
+        white-space: nowrap !important;
+    }
+    
+    .table-profesores-scroll td[data-label="ID"] {
+        white-space: nowrap !important;
+    }
+    
+    .table-programas-scroll td[data-label="ID"] {
+        white-space: nowrap !important;
     }
     
     /* Alumnos Table (10 Columnas) */
