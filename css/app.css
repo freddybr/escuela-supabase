@@ -400,13 +400,13 @@ body {
 }
 
 /* Cuando la vista contiene una tabla, congelamos el scroll principal para que los cabezales queden fijos */
-.app-main:has(.table-responsive):not(:has(.dashboard-topbar)) {
+.app-main:has(.table-responsive):not(:has(.dashboard-topbar)):not(:has(.reportes-layout)) {
     height: calc(100vh - 70px) !important;
     max-height: calc(100vh - 70px) !important;
     overflow: hidden !important;
 }
 
-.app-main:has(.table-responsive):not(:has(.dashboard-topbar)) #main-content {
+.app-main:has(.table-responsive):not(:has(.dashboard-topbar)):not(:has(.reportes-layout)) #main-content {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -783,7 +783,10 @@ body {
     .table-asistencias-scroll .data-table,
     .table-profesores-scroll .data-table,
     .table-alumnos-scroll .data-table,
-    .table-asignaciones-scroll .data-table {
+    .table-asignaciones-scroll .data-table,
+    .table-rep-alumno-scroll .data-table,
+    .table-rep-grado-scroll .data-table,
+    .table-rep-avance-scroll .data-table {
         display: block;
         width: max-content !important;
         min-width: 100% !important;
@@ -858,6 +861,37 @@ body {
     .table-asistencias-scroll .data-table tbody tr {
         display: grid;
         grid-template-columns: 110px 70px 180px 180px 220px 220px 120px 110px 110px 1fr;
+        width: 100%;
+    }
+
+    /* Reportes Table Grids (Estilos Desktop) */
+    .table-rep-alumno-scroll .data-table {
+        min-width: 900px;
+    }
+    .table-rep-alumno-scroll .data-table thead tr,
+    .table-rep-alumno-scroll .data-table tbody tr {
+        display: grid;
+        grid-template-columns: 110px 180px 200px 150px 120px 1fr;
+        width: 100%;
+    }
+
+    .table-rep-grado-scroll .data-table {
+        min-width: 990px;
+    }
+    .table-rep-grado-scroll .data-table thead tr,
+    .table-rep-grado-scroll .data-table tbody tr {
+        display: grid;
+        grid-template-columns: 70px 220px 220px 140px 110px 110px 130px;
+        width: 100%;
+    }
+
+    .table-rep-avance-scroll .data-table {
+        min-width: 960px;
+    }
+    .table-rep-avance-scroll .data-table thead tr,
+    .table-rep-avance-scroll .data-table tbody tr {
+        display: grid;
+        grid-template-columns: 100px 240px 130px 180px 130px 1fr;
         width: 100%;
     }
     
@@ -1361,7 +1395,7 @@ body {
 /* =========================================================================
    12. REDISEÑO TOTAL EN MÓVILES (Tablas convertidas en Tarjetas/Cards)
    ========================================================================= */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     body {
         height: 100vh;
         overflow: hidden;
@@ -1407,13 +1441,13 @@ body {
     }
 
     /* Congelamos el scroll en el contenedor principal en móviles para los filtros y cabezales fijos */
-    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)) {
+    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)):not(:has(.reportes-layout)) {
         height: calc(100vh - 64px) !important;
         max-height: calc(100vh - 64px) !important;
         overflow: hidden !important;
     }
 
-    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)) #main-content {
+    .app-main:has(.table-responsive):not(:has(.dashboard-topbar)):not(:has(.reportes-layout)) #main-content {
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -1858,7 +1892,7 @@ body {
 }
 
 /* responsive */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     .app-main:has(.config-layout) {
         height: calc(100vh - 64px) !important;
         max-height: calc(100vh - 64px) !important;
@@ -1949,7 +1983,7 @@ body.theme-dark .control-counter-badge {
 }
 
 /* Scroll horizontal específico para Cartelera en móviles */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     .table-cartelera-scroll {
         overflow-x: auto !important;
         background: var(--bg-card) !important;
@@ -2089,12 +2123,14 @@ body.theme-dark .control-counter-badge {
         margin: 15mm;
     }
     
-    body {
+    html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
         background: #ffffff !important;
         color: #000000 !important;
         font-size: 11pt !important;
-        height: auto !important;
-        overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -2114,6 +2150,11 @@ body.theme-dark .control-counter-badge {
 
     .app-body {
         display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        position: static !important;
     }
 
     .app-main {
@@ -2121,11 +2162,13 @@ body.theme-dark .control-counter-badge {
         margin: 0 !important;
         overflow: visible !important;
         height: auto !important;
+        min-height: 0 !important;
         max-height: none !important;
         display: block !important;
+        position: static !important;
     }
 
-    .report-tab-content {
+    .report-tab-content.active {
         display: block !important;
         overflow: visible !important;
         height: auto !important;
@@ -2164,31 +2207,41 @@ body.theme-dark .control-counter-badge {
 
     /* Modificación de tablas para impresión */
     .table-responsive,
-    .table-profesores-scroll,
-    .table-alumnos-scroll,
-    .table-asistencias-scroll,
-    .table-control-scroll {
+    [class*="-scroll"] {
         overflow: visible !important;
         max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
-    .data-table {
+    /* Desactivar rejilla Grid y forzar tabla HTML nativa con alta especificidad en impresión */
+    .data-table,
+    [class*="-scroll"] .data-table {
         display: table !important;
         width: 100% !important;
         border-collapse: collapse !important;
         page-break-inside: auto;
     }
 
-    .data-table tr {
+    .data-table tr,
+    .data-table thead tr,
+    .data-table tbody tr,
+    [class*="-scroll"] .data-table tr,
+    [class*="-scroll"] .data-table thead tr,
+    [class*="-scroll"] .data-table tbody tr {
         page-break-inside: avoid;
         page-break-after: auto;
         display: table-row !important;
+        width: 100% !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .data-table th, 
-    .data-table td {
+    .data-table td,
+    [class*="-scroll"] .data-table th,
+    [class*="-scroll"] .data-table td {
         border: 1px solid #cbd5e1 !important;
         padding: 8px 10px !important;
         font-size: 9.5pt !important;
@@ -2197,22 +2250,33 @@ body.theme-dark .control-counter-badge {
         color: #000000 !important;
         display: table-cell !important;
         width: auto !important;
+        height: auto !important;
+        box-sizing: border-box !important;
     }
 
-    .data-table thead {
+    .data-table thead,
+    [class*="-scroll"] .data-table thead {
         display: table-header-group !important;
     }
 
-    .data-table thead th {
+    .data-table tbody,
+    [class*="-scroll"] .data-table tbody {
+        display: table-row-group !important;
+    }
+
+    .data-table thead th,
+    [class*="-scroll"] .data-table thead th {
         background-color: #f1f5f9 !important;
         font-weight: 700 !important;
     }
 
-    /* Ocultar columnas innecesarias para PDF (ej. fotos de alumnos) */
+    /* Ocultar columnas innecesarias para PDF (ej. fotos de alumnos en listas CRUD) */
+    .table-alumnos-scroll .data-table th:nth-child(2),
+    .table-alumnos-scroll .data-table td:nth-child(2),
+    .table-profesores-scroll .data-table th:nth-child(2),
+    .table-profesores-scroll .data-table td:nth-child(2),
     .data-table th:has(img), 
-    .data-table td:has(img),
-    .data-table th:nth-child(2),
-    .data-table td:nth-child(2) {
+    .data-table td:has(img) {
         display: none !important;
     }
 
@@ -2250,5 +2314,16 @@ body.theme-dark .control-counter-badge {
         padding-top: 8px;
         font-size: 9.5pt;
         font-weight: 600;
+    }
+}
+
+/* Altura máxima y scroll vertical para las tablas de reportes en pantalla */
+@media screen {
+    .table-rep-alumno-scroll,
+    .table-rep-grado-scroll,
+    .table-rep-avance-scroll {
+        max-height: 480px;
+        overflow-y: auto !important;
+        position: relative;
     }
 }

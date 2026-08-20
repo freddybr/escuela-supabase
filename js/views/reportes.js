@@ -39,7 +39,8 @@ export async function cargarVistaReportes(container) {
 
     // 2. Renderizar Estructura del Panel de Reportes
     let htmlTemplate = `
-        ${renderHeaderSeccion('reportes', 'Módulo de Reportes', 'Visualice y exporte estadísticas académicas y de asistencias.')}
+        <div class="reportes-layout">
+            ${renderHeaderSeccion('reportes', 'Módulo de Reportes', 'Visualice y exporte estadísticas académicas y de asistencias.')}
 
         <!-- Pestañas de Selección de Reporte -->
         <div class="report-tabs">
@@ -95,7 +96,7 @@ export async function cargarVistaReportes(container) {
                         <div class="metric-number" id="m-alumno-totales">0</div>
                     </div>
                     <div class="metric-box">
-                        <h4>Prensentes</h4>
+                        <h4>Presentes</h4>
                         <div class="metric-number" id="m-alumno-presentes" style="color: var(--success);">0</div>
                     </div>
                     <div class="metric-box">
@@ -105,7 +106,7 @@ export async function cargarVistaReportes(container) {
                 </div>
 
                 <!-- Tabla de Detalle -->
-                <div class="table-responsive">
+                <div class="table-responsive table-rep-alumno-scroll">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -159,7 +160,7 @@ export async function cargarVistaReportes(container) {
                 </div>
 
                 <!-- Tabla -->
-                <div class="table-responsive">
+                <div class="table-responsive table-rep-grado-scroll">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -218,7 +219,7 @@ export async function cargarVistaReportes(container) {
                 </div>
 
                 <!-- Tabla -->
-                <div class="table-responsive">
+                <div class="table-responsive table-rep-avance-scroll">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -262,6 +263,7 @@ export async function cargarVistaReportes(container) {
                     <div class="signature-line">Coordinador / Dirección</div>
                 </div>
             </div>
+        </div>
         </div>
     `;
 
@@ -332,23 +334,39 @@ export async function cargarVistaReportes(container) {
         // Filtrar asistencias de este alumno en memoria
         const asistenciasAlumno = todasAsistencias.filter(as => as.alumno && as.alumno.trim().toLowerCase() === alumnoNombre.trim().toLowerCase());
 
-        if (asistenciasAlumno.length === 0) {
-            mostrarMensaje('info', 'El alumno no registra asistencias tomadas.');
-            resultAlumnoContainer.style.display = 'none';
-            emptyAlumnoMsg.style.display = 'block';
-            btnPrintAlumno.style.display = 'none';
-            return;
-        }
+        // Obtener el grado seleccionado
+        const gradoId = selectAlumnoGrado.value;
+        const gradoObj = todosGrados.find(g => String(g.id) === String(gradoId));
+        const gradoNombre = gradoObj ? (gradoObj.grado_nombre || '') : '';
+        const gradoNumero = gradoObj ? (gradoObj.grado_numero || '') : '';
 
-        // Calcular porcentajes
-        const total = asistenciasAlumno.length;
-        const presentes = asistenciasAlumno.filter(as => as.presente).length;
-        const inasistencias = total - presentes;
-        const porcentaje = total > 0 ? Math.round((presentes / total) * 100) : 0;
+        // Buscar programas asignados a este grado por grado_numero
+        const asignacionesDelGrado = todasAsignaciones.filter(asig => 
+            (asig.grado_numero || '').trim().toLowerCase() === gradoNumero.trim().toLowerCase()
+        );
+        const nombresProgramas = asignacionesDelGrado.map(asig => (asig.programa_tema || '').trim().toLowerCase());
+
+        // Calcular Clases Registradas (clases "Vista" de la ejecución para estos programas en este grado)
+        const clasesRegistradas = todosControles.filter(c => 
+            (c.grado_numero || '').trim().toLowerCase() === gradoNumero.trim().toLowerCase() &&
+            nombresProgramas.includes((c.programa_tema || '').trim().toLowerCase()) &&
+            c.control_estatus === 'Vista'
+        ).length;
+
+        // Calcular Presentes (clases con estatus "Presente" para estos programas de este grado)
+        const presentes = asistenciasAlumno.filter(as => 
+            (as.grado || '').trim().toLowerCase() === gradoNombre.trim().toLowerCase() &&
+            nombresProgramas.includes((as.programa || '').trim().toLowerCase()) &&
+            as.presente
+        ).length;
+
+        const inasistencias = Math.max(0, clasesRegistradas - presentes);
+        const rawPct = clasesRegistradas > 0 ? (presentes / clasesRegistradas * 100) : 0;
+        const porcentaje = Number.isInteger(rawPct) ? rawPct : rawPct.toFixed(2);
 
         // Inyectar métricas
         document.getElementById('m-alumno-porcentaje').textContent = `${porcentaje}%`;
-        document.getElementById('m-alumno-totales').textContent = total;
+        document.getElementById('m-alumno-totales').textContent = clasesRegistradas;
         document.getElementById('m-alumno-presentes').textContent = presentes;
         document.getElementById('m-alumno-inasistencias').textContent = inasistencias;
 
@@ -361,16 +379,16 @@ export async function cargarVistaReportes(container) {
         const tbody = document.getElementById('table-body-alumno');
         tbody.innerHTML = asistenciasAlumno.map(as => `
             <tr>
-                <td><strong>${formatearFecha(as.fecha)}</strong></td>
-                <td>${as.programa || '-'}</td>
-                <td>${as.clase || '-'}</td>
-                <td>
+                <td data-label="Fecha"><strong>${formatearFecha(as.fecha)}</strong></td>
+                <td data-label="Programa">${as.programa || '-'}</td>
+                <td data-label="Clase">${as.clase || '-'}</td>
+                <td data-label="Estatus Asistencia">
                     <span class="badge" style="background-color: ${as.presente ? '#198754' : '#dc3545'}; color:#ffffff;">
                         ${as.presente ? 'Presente' : 'Ausente'}
                     </span>
                 </td>
-                <td>${as.evaluacion || '-'}</td>
-                <td><span class="text-light">${as.observaciones || ''}</span></td>
+                <td data-label="Evaluación">${as.evaluacion || '-'}</td>
+                <td data-label="Observaciones"><span class="text-light">${as.observaciones || ''}</span></td>
             </tr>
         `).join('');
 
@@ -403,18 +421,43 @@ export async function cargarVistaReportes(container) {
             return;
         }
 
+        const gradoObj = todosGrados.find(g => String(g.id) === String(gradoId));
+        const gradoNombre = gradoObj ? (gradoObj.grado_nombre || '') : '';
+        const gradoNumero = gradoObj ? (gradoObj.grado_numero || '') : '';
+
+        // Buscar programas asignados a este grado por grado_numero
+        const asignacionesDelGrado = todasAsignaciones.filter(asig => 
+            (asig.grado_numero || '').trim().toLowerCase() === gradoNumero.trim().toLowerCase()
+        );
+        const nombresProgramas = asignacionesDelGrado.map(asig => (asig.programa_tema || '').trim().toLowerCase());
+
+        // Calcular Clases Registradas (clases "Vista" de la ejecución para estos programas en este grado)
+        const clasesRegistradas = todosControles.filter(c => 
+            (c.grado_numero || '').trim().toLowerCase() === gradoNumero.trim().toLowerCase() &&
+            nombresProgramas.includes((c.programa_tema || '').trim().toLowerCase()) &&
+            c.control_estatus === 'Vista'
+        ).length;
+
         let sumaPorcentajes = 0;
         let totalAlumnosConDatos = 0;
 
         const tableRows = alumnosGrado.map(a => {
             const asistenciasAlumno = todasAsistencias.filter(as => as.alumno && as.alumno.trim().toLowerCase() === a.alumno_nombre.trim().toLowerCase());
-            const totalClases = asistenciasAlumno.length;
-            const presentes = asistenciasAlumno.filter(as => as.presente).length;
-            const inasistencias = totalClases - presentes;
-            const porcentaje = totalClases > 0 ? Math.round((presentes / totalClases) * 100) : null;
+            
+            // Calcular Presentes (clases con estatus "Presente" para estos programas de este grado)
+            const presentes = asistenciasAlumno.filter(as => 
+                (as.grado || '').trim().toLowerCase() === gradoNombre.trim().toLowerCase() &&
+                nombresProgramas.includes((as.programa || '').trim().toLowerCase()) &&
+                as.presente
+            ).length;
+
+            const totalClases = clasesRegistradas;
+            const inasistencias = Math.max(0, totalClases - presentes);
+            const rawPct = totalClases > 0 ? (presentes / totalClases * 100) : 0;
+            const porcentaje = totalClases > 0 ? (Number.isInteger(rawPct) ? rawPct : rawPct.toFixed(2)) : null;
 
             if (porcentaje !== null) {
-                sumaPorcentajes += porcentaje;
+                sumaPorcentajes += Number(porcentaje);
                 totalAlumnosConDatos++;
             }
 
@@ -423,13 +466,13 @@ export async function cargarVistaReportes(container) {
 
             return `
                 <tr>
-                    <td><strong># ${a.id}</strong></td>
-                    <td class="text-bold">${a.alumno_nombre}</td>
-                    <td>${a.alumno_email || '-'}</td>
-                    <td>${totalClases}</td>
-                    <td style="color:#198754; font-weight:700;">${presentes}</td>
-                    <td style="color:#dc3545; font-weight:700;">${inasistencias}</td>
-                    <td>
+                    <td data-label="ID"><strong># ${a.id}</strong></td>
+                    <td data-label="Alumno" class="text-bold">${a.alumno_nombre}</td>
+                    <td data-label="Correo">${a.alumno_email || '-'}</td>
+                    <td data-label="Clases Evaluadas">${totalClases}</td>
+                    <td data-label="Asistencias" style="color:#198754; font-weight:700;">${presentes}</td>
+                    <td data-label="Inasistencias" style="color:#dc3545; font-weight:700;">${inasistencias}</td>
+                    <td data-label="% Asistencia">
                         <span class="badge" style="background-color: ${badgeBg}; color:#ffffff;">
                             ${pTexto}
                         </span>
@@ -494,21 +537,24 @@ export async function cargarVistaReportes(container) {
         fillAvance.style.width = `${avancePorcentaje}%`;
         fillAvance.className = 'attendance-progress-fill ' + (avancePorcentaje >= 90 ? 'attendance-high' : avancePorcentaje >= 70 ? 'attendance-medium' : 'attendance-low');
 
+        // Ordenar controles por número de clase de menor a mayor
+        controlesAsignacion.sort((a, b) => (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0));
+
         // Llenar tabla
         document.getElementById('table-body-avance').innerHTML = controlesAsignacion.map(c => {
             const badgeBg = c.control_estatus === 'Vista' ? '#198754' : c.control_estatus === 'Programada' ? '#0d6efd' : '#f59e0b';
             return `
                 <tr>
-                    <td><strong>Clase #${c.clase_num || ''}</strong></td>
-                    <td class="text-bold">${c.clase_tema || '-'}</td>
-                    <td>${formatearFecha(c.control_fecha) || 'Sin fecha'}</td>
-                    <td>${c.profe_nombre || 'Sin asignar'}</td>
-                    <td>
+                    <td data-label="# Clase"><strong># ${c.clase_num || ''}</strong></td>
+                    <td data-label="Tema de Clase" class="text-bold">${c.clase_tema || '-'}</td>
+                    <td data-label="Fecha Ejecución">${formatearFecha(c.control_fecha) || 'Sin fecha'}</td>
+                    <td data-label="Docente">${c.profe_nombre || 'Sin asignar'}</td>
+                    <td data-label="Estatus">
                         <span class="badge" style="background-color: ${badgeBg}; color:#ffffff;">
                             ${c.control_estatus || 'Pendiente'}
                         </span>
                     </td>
-                    <td><span class="text-light">${c.control_observaciones || ''}</span></td>
+                    <td data-label="Observaciones de Clase"><span class="text-light">${c.control_observaciones || ''}</span></td>
                 </tr>
             `;
         }).join('');
