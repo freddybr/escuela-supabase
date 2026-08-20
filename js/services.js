@@ -152,7 +152,7 @@ export const AlumnoService = {
                 .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
 
             const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
-            const fileName = `${nombreNormalizado}_alumno_${id}.${fileExt}`;
+            const fileName = `${id}_${nombreNormalizado}_alumno.${fileExt}`;
 
             // 2. Subir el archivo (con upsert: true para sobreescribir si ya existe la misma extensión)
             const { error: uploadError } = await supabase.storage
@@ -224,7 +224,7 @@ export const ProfesorService = {
                 .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
 
             const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
-            const fileName = `${nombreNormalizado}_profesor_${id}.${fileExt}`;
+            const fileName = `${id}_${nombreNormalizado}_profesor.${fileExt}`;
 
             // 2. Subir al bucket
             const { error: uploadError } = await supabase.storage
