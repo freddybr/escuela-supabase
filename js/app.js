@@ -12,6 +12,7 @@ import { cargarVistaAsignaciones } from './views/asignaciones.js';
 import { cargarVistaControl } from './views/control.js';
 import { cargarVistaAsistencias } from './views/asistencias.js';
 import { cargarVistaConfiguracion } from './views/configuracion.js';
+import { cargarVistaReportes } from './views/reportes.js';
 
 // Helper seguro para localStorage
 export const safeLocalStorage = {
@@ -57,6 +58,7 @@ const navProfesores = document.getElementById('nav-profesores');
 const navAsignaciones = document.getElementById('nav-asignaciones');
 const navControl = document.getElementById('nav-control');
 const navAsistencias = document.getElementById('nav-asistencias');
+const navReportes = document.getElementById('nav-reportes');
 const navConfig = document.getElementById('nav-config');
 const btnLogout = document.getElementById('btn-logout');
 
@@ -72,6 +74,7 @@ const navButtons = [
     navAsignaciones,
     navControl,
     navAsistencias,
+    navReportes,
     navConfig
 ];
 
@@ -154,6 +157,7 @@ navProfesores.addEventListener('click', () => cambiarVista(() => cargarVistaProf
 navAsignaciones.addEventListener('click', () => cambiarVista(() => cargarVistaAsignaciones(mainContent), navAsignaciones));
 navControl.addEventListener('click', () => cambiarVista(() => cargarVistaControl(mainContent), navControl));
 navAsistencias.addEventListener('click', () => cambiarVista(() => cargarVistaAsistencias(mainContent), navAsistencias));
+navReportes.addEventListener('click', () => cambiarVista(() => cargarVistaReportes(mainContent), navReportes));
 navConfig.addEventListener('click', () => cambiarVista(() => cargarVistaConfiguracion(mainContent, checkUser), navConfig));
 
 // LÓGICA DE MONITOREO DE INACTIVIDAD
