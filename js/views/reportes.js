@@ -11,6 +11,22 @@ let todosControles = [];
 let todasAsignaciones = [];
 
 export async function cargarVistaReportes(container) {
+    // Protección de seguridad a nivel de vista
+    const rol = window.usuarioRol;
+    const esAdminOSuper = rol === 'admin' || rol === 'superadmin' || (window.usuarioEmail && window.usuarioEmail.toLowerCase() === 'freddybr.igle@gmail.com');
+    if (!esAdminOSuper) {
+        container.innerHTML = `
+            <div class="reports-error-container" style="padding: 40px; text-align: center; color: #dc3545; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); margin: 20px;">
+                <svg style="width: 64px; height: 64px; margin-bottom: 20px; color: #dc3545;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 10px;">Acceso Denegado</h3>
+                <p style="color: var(--text-light);">No tienes los permisos necesarios para visualizar el módulo de reportes.</p>
+            </div>
+        `;
+        return;
+    }
+
     containerElement = container;
     container.innerHTML = '<div class="loading">Cargando Módulo de Reportes...</div>';
 

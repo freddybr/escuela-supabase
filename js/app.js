@@ -102,6 +102,7 @@ async function checkUser() {
     // 1. Buscar si el usuario registrado existe en la tabla de profesores (con todos los datos)
     const { data: profe } = await ProfesorService.getProfesorByEmail(user.email);
 
+    window.usuarioEmail = user.email || '';
     if (profe) {
         if (profe.profe_imagen_url && profe.profe_imagen_url.trim() !== '') {
             fotoUrl = profe.profe_imagen_url;
@@ -110,6 +111,7 @@ async function checkUser() {
         // Asignar rol docente si corresponde
         const esDocente = profe.profe_rol && profe.profe_rol.trim().toLowerCase() === 'docente';
         window.usuarioEsDocente = !!esDocente;
+        window.usuarioRol = (profe.profe_rol || '').trim().toLowerCase();
     } else {
         // 2. Si no es profesor, buscar si existe en la tabla de alumnos
         const { data: alumno } = await AlumnoService.getAlumnoImagenByEmail(user.email);
@@ -118,6 +120,7 @@ async function checkUser() {
             fotoUrl = alumno.alumno_imagen_url;
         }
         window.usuarioEsDocente = false;
+        window.usuarioRol = 'alumno';
     }
 
     if (window.usuarioEsDocente) {
@@ -125,6 +128,14 @@ async function checkUser() {
         setupDocenteRestrictionObserver();
     } else {
         document.body.classList.remove('user-docente');
+    }
+
+    // Mostrar/ocultar módulo de reportes solo para Admin y Superadmin (o propietario freddybr.igle@gmail.com)
+    const esAdminOSuper = window.usuarioRol === 'admin' || window.usuarioRol === 'superadmin' || window.usuarioEmail.toLowerCase() === 'freddybr.igle@gmail.com';
+    if (esAdminOSuper) {
+        navReportes.style.display = 'flex';
+    } else {
+        navReportes.style.display = 'none';
     }
 
     // 3. Crear el fallback de iniciales por si no tiene foto asignada
