@@ -185,6 +185,60 @@ body {
     white-space: nowrap; /* Evita que el nombre del logo se divida en dos líneas */
 }
 
+/* Banner de Conexión Offline */
+.connection-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f59e0b;
+    color: #0f172a;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    animation: bannerPulse 2s infinite;
+}
+
+.connection-banner.offline-hidden {
+    display: none !important;
+}
+
+@keyframes bannerPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+/* Estilos para el modo Offline */
+.offline-read-only-notice {
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid #f59e0b;
+    color: #d97706;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Indicador de sincronización en el menú */
+.sync-badge {
+    background-color: #f59e0b;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+    display: inline-block;
+}
+
 .app-logo-icon {
     display: inline-flex;
     align-items: center;

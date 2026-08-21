@@ -1,4 +1,4 @@
-import { AuthService, ProfesorService, AlumnoService } from './services.js';
+import { AuthService, ProfesorService, AlumnoService, syncOfflineData, OfflineQueue } from './services.js';
 import { getFallbackAvatarUrl, setActiveNav, setupMobileMenu } from './ui.js';
 import { cargarVistaDashboard } from './views/dashboard.js';
 import { cargarVistaPeriodos } from './views/periodos.js';
@@ -208,6 +208,7 @@ function iniciarMonitoreoInactividad() {
 // LANZAR VERIFICACIÓN INICIAL Y MONITOREO DE INACTIVIDAD
 try {
     iniciarMonitoreoInactividad();
+    setupDocenteRestrictionObserver();
     checkUser()
         .then(() => {
             cargarVistaDashboard(mainContent);
@@ -243,19 +244,56 @@ function setupDocenteRestrictionObserver() {
                 const target = mutation.target;
                 if (target.classList.contains('modal') && target.style.display === 'flex') {
                     const modalId = target.id;
-                    if (modalId !== 'modal-control' && modalId !== 'modal-asistencia') {
-                        // Deshabilitar todos los inputs, selects y textareas
-                        const inputs = target.querySelectorAll('input, select, textarea');
-                        inputs.forEach(input => {
-                            input.disabled = true;
-                        });
-                        
-                        // Ocultar botones de guardar y eliminar
-                        const saveBtn = target.querySelector('.btn-primary, #btn-guardar-alumno, #btn-guardar-asignacion, #btn-guardar-materia, #btn-guardar-periodo, #btn-guardar-profesor, #btn-guardar-programa');
-                        if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
-                        
-                        const deleteBtn = target.querySelector('.btn-danger, #btn-borrar-alumno, #btn-borrar-asignacion, #btn-borrar-materia, #btn-borrar-periodo, #btn-borrar-profesor, #btn-borrar-programa');
-                        if (deleteBtn) deleteBtn.style.setProperty('display', 'none', 'important');
+                    
+                    // 1. Caso A: Dispositivo Offline (Aplica a Administradores y Docentes por igual)
+                    if (!navigator.onLine) {
+                        if (modalId !== 'modal-control' && modalId !== 'modal-asistencia') {
+                            // Deshabilitar todos los inputs, selects y textareas
+                            const inputs = target.querySelectorAll('input, select, textarea');
+                            inputs.forEach(input => {
+                                input.disabled = true;
+                            });
+                            
+                            // Ocultar botones de guardar y eliminar
+                            const saveBtn = target.querySelector('.btn-primary, #btn-guardar-alumno, #btn-guardar-asignacion, #btn-guardar-materia, #btn-guardar-periodo, #btn-guardar-profesor, #btn-guardar-programa');
+                            if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+                            
+                            const deleteBtn = target.querySelector('.btn-danger, #btn-borrar-alumno, #btn-borrar-asignacion, #btn-borrar-materia, #btn-borrar-periodo, #btn-borrar-profesor, #btn-borrar-programa');
+                            if (deleteBtn) deleteBtn.style.setProperty('display', 'none', 'important');
+
+                            // Agregar aviso de sólo lectura si no existe ya
+                            let notice = target.querySelector('.offline-read-only-notice');
+                            if (!notice) {
+                                notice = document.createElement('div');
+                                notice.className = 'offline-read-only-notice';
+                                notice.innerHTML = `<span>⚠️ Modo sin conexión: Conéctate a internet para realizar cambios en este catálogo.</span>`;
+                                const modalBody = target.querySelector('.modal-content') || target;
+                                modalBody.insertBefore(notice, modalBody.firstChild);
+                            }
+                            return; // Saltar restricción de docente normal
+                        }
+                    } else {
+                        // Limpiar avisos offline si el dispositivo recupera conexión
+                        const notice = target.querySelector('.offline-read-only-notice');
+                        if (notice) notice.remove();
+                    }
+
+                    // 2. Caso B: Usuario Docente (Restringir cambios en catálogos administrativos incluso online)
+                    if (window.usuarioEsDocente) {
+                        if (modalId !== 'modal-control' && modalId !== 'modal-asistencia') {
+                            // Deshabilitar todos los inputs, selects y textareas
+                            const inputs = target.querySelectorAll('input, select, textarea');
+                            inputs.forEach(input => {
+                                input.disabled = true;
+                            });
+                            
+                            // Ocultar botones de guardar y eliminar
+                            const saveBtn = target.querySelector('.btn-primary, #btn-guardar-alumno, #btn-guardar-asignacion, #btn-guardar-materia, #btn-guardar-periodo, #btn-guardar-profesor, #btn-guardar-programa');
+                            if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+                            
+                            const deleteBtn = target.querySelector('.btn-danger, #btn-borrar-alumno, #btn-borrar-asignacion, #btn-borrar-materia, #btn-borrar-periodo, #btn-borrar-profesor, #btn-borrar-programa');
+                            if (deleteBtn) deleteBtn.style.setProperty('display', 'none', 'important');
+                        }
                     }
                 }
             }
@@ -268,3 +306,79 @@ function setupDocenteRestrictionObserver() {
         attributeFilter: ['style']
     });
 }
+
+// Manejo del estado de conexión (Online / Offline)
+const connectionBanner = document.getElementById('connection-banner');
+
+function actualizarEstadoConexion() {
+    const isOnline = navigator.onLine;
+    if (isOnline) {
+        if (connectionBanner) connectionBanner.classList.add('offline-hidden');
+        document.body.classList.remove('device-offline');
+        
+        // Sincronizar datos si hay elementos en la cola
+        const totalPendientes = OfflineQueue.getQueue('cola_control').length + OfflineQueue.getQueue('cola_asistencias').length;
+        if (totalPendientes > 0) {
+            syncOfflineData().then(() => {
+                // Si la sincronización se realiza con éxito, refrescar la vista actual para reflejar los datos reales
+                const activeBtn = document.querySelector('.menu-btn.active');
+                if (activeBtn) {
+                    activeBtn.click();
+                }
+            });
+        }
+    } else {
+        if (connectionBanner) connectionBanner.classList.remove('offline-hidden');
+        document.body.classList.add('device-offline');
+    }
+}
+
+window.addEventListener('online', actualizarEstadoConexion);
+window.addEventListener('offline', actualizarEstadoConexion);
+
+// Escuchar actualizaciones en la cola local para actualizar insignias si es necesario
+window.addEventListener('offline-sync-queue-updated', () => {
+    actualizarBadgesSincronizacion();
+});
+
+// Función para pintar insignias naranjas de sincronización en el menú si hay datos pendientes
+function actualizarBadgesSincronizacion() {
+    const totalControles = OfflineQueue.getQueue('cola_control').length;
+    const totalAsistencias = OfflineQueue.getQueue('cola_asistencias').length;
+    
+    // Insignia para Control (Ejecución)
+    const btnControl = document.getElementById('nav-control');
+    if (btnControl) {
+        let badge = btnControl.querySelector('.sync-badge');
+        if (totalControles > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'sync-badge';
+                btnControl.appendChild(badge);
+            }
+            badge.textContent = `${totalControles}`;
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+    
+    // Insignia para Asistencias
+    const btnAsistencias = document.getElementById('nav-asistencias');
+    if (btnAsistencias) {
+        let badge = btnAsistencias.querySelector('.sync-badge');
+        if (totalAsistencias > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'sync-badge';
+                btnAsistencias.appendChild(badge);
+            }
+            badge.textContent = `${totalAsistencias}`;
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+}
+
+// Ejecutar verificación inicial de conexión e insignias
+actualizarEstadoConexion();
+actualizarBadgesSincronizacion();

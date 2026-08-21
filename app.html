@@ -35,6 +35,12 @@
             Escuela Digital
         </div>
         
+        <!-- Banner de Conexión Offline -->
+        <div id="connection-banner" class="connection-banner offline-hidden">
+            <span class="banner-icon">⚠️</span>
+            <span class="banner-text">Trabajando sin conexión</span>
+        </div>
+        
         <div class="user-control">
             <div class="user-avatar-container">
                 <img id="user-avatar" src="https://api.dicebear.com/7.x/initials/svg?seed=Usuario" alt="Avatar" class="user-avatar">
@@ -148,5 +154,14 @@
     </div>
 
     <script type="module" src="js/app.js?v=3.1"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
+                    .catch(err => console.error('Error al registrar el Service Worker:', err));
+            });
+        }
+    </script>
 </body>
 </html>
