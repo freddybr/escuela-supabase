@@ -14,6 +14,9 @@ import { cargarVistaAsistencias } from './views/asistencias.js';
 import { cargarVistaConfiguracion } from './views/configuracion.js';
 import { cargarVistaReportes } from './views/reportes.js';
 
+// Estado global de restricciones offline y roles
+let observerInicializado = false;
+
 // Helper seguro para localStorage
 export const safeLocalStorage = {
     getItem(key) {
@@ -233,7 +236,6 @@ try {
     `;
 }
 
-let observerInicializado = false;
 function setupDocenteRestrictionObserver() {
     if (observerInicializado) return;
     observerInicializado = true;
