@@ -1,4 +1,4 @@
-const CACHE_NAME = 'escuela-digital-cache-v1';
+const CACHE_NAME = 'escuela-digital-cache-v4';
 const ASSETS = [
   './',
   './app.html',

@@ -2,7 +2,21 @@ import { renderHeaderSeccion } from '../ui.js';
 import { AlumnoService, ProfesorService, ClaseService, ControlService, AsignacionService, ProgramaService, GradoService, PeriodoService, AsistenciaService } from '../services.js';
 
 function formatearFecha(dateValue) {
-    const fecha = new Date(dateValue);
+    if (!dateValue) return 'Sin fecha';
+    let fecha;
+    if (dateValue instanceof Date) {
+        fecha = dateValue;
+    } else if (typeof dateValue === 'string') {
+        const parts = dateValue.split('T')[0].split('-');
+        if (parts.length === 3) {
+            fecha = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        } else {
+            fecha = new Date(dateValue);
+        }
+    } else {
+        fecha = new Date(dateValue);
+    }
+
     if (Number.isNaN(fecha.getTime())) return 'Sin fecha';
     return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }).format(fecha);
 }
