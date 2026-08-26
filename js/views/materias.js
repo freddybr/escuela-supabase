@@ -1,73 +1,55 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje } from '../ui.js';
 import { MateriaService } from '../services.js';
 
-let containerElement = null;
+let modalInitialized = false;
 
-export async function cargarVistaMaterias(container) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando materias...</div>';
+export async function cargarVistaMaterias() {
+    const tableBody = document.getElementById('tabla-materias-body');
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="loading">Consultando materias...</td></tr>';
+    }
 
     const { data: materias, error } = await MateriaService.getMaterias();
 
     if (error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="3" class="error-msg">❌ Error: ${error.message}</td></tr>`;
+        }
         return;
     }
 
-    let htmlTemplate = `
-        ${renderHeaderSeccion('materias', 'Materias', 'Disciplinas académicas del diseño curricular.', `<div class="header-action-container"><button id="btn-nueva-materia" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
-        <div class="table-responsive table-materias-scroll">
-            <table class="data-table" id="tabla-materias">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>Descripción Académica</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${materias.map(m => `
-                        <tr data-id="${m.id}" class="fila-materia" style="cursor: pointer;">
-                            <td data-label="Código"><strong># ${m.id}</strong></td>
-                            <td data-label="Nombre" class="text-bold">${m.materia_nombre}</td>
-                            <td data-label="Descripción">${m.materia_descripcion || 'Sin descripción'}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
+    // Dibujar las filas de la tabla
+    if (tableBody) {
+        if (materias.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">No hay materias registradas.</td></tr>';
+        } else {
+            tableBody.innerHTML = materias.map(m => `
+                <tr data-id="${m.id}" class="fila-materia" style="cursor: pointer;">
+                    <td data-label="Código"><strong># ${m.id}</strong></td>
+                    <td data-label="Nombre" class="text-bold">${m.materia_nombre}</td>
+                    <td data-label="Descripción">${m.materia_descripcion || 'Sin descripción'}</td>
+                </tr>
+            `).join('');
+        }
+    }
 
-        <div id="modal-materia" class="modal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-title">Materia</h3>
-                    <button id="modal-close" class="modal-close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <form id="form-materia">
-                        <input type="hidden" id="materia-id">
-                        <div class="form-row">
-                            <label>Nombre</label>
-                            <input id="materia-nombre" type="text" required>
-                        </div>
-                        <div class="form-row">
-                            <label>Descripción</label>
-                            <textarea id="materia-descripcion" rows="4"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button id="btn-cancelar-materia" class="btn-secondary">Cancelar</button>
-                    <button id="btn-borrar-materia" class="btn-danger" style="display:none;">Eliminar</button>
-                    <button id="btn-guardar-materia" class="btn-primary">Guardar</button>
-                </div>
-            </div>
-        </div>
-    `;
-    container.innerHTML = htmlTemplate;
+    // Configurar permisos del rol docente (ocultar botón agregar)
+    const btnNuevaMateria = document.getElementById('btn-nueva-materia');
+    if (btnNuevaMateria) {
+        if (window.usuarioEsDocente) {
+            btnNuevaMateria.style.display = 'none';
+        } else {
+            btnNuevaMateria.style.display = '';
+        }
+    }
 
-    document.getElementById('btn-nueva-materia')?.addEventListener('click', () => abrirModalMateria());
+    // Inicializar listeners del formulario y modal una sola vez
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
+    // Configurar clics en las filas para editar
     document.querySelectorAll('.fila-materia').forEach(row => {
         row.addEventListener('click', async () => {
             const id = row.getAttribute('data-id');
@@ -75,11 +57,14 @@ export async function cargarVistaMaterias(container) {
             if (materia) abrirModalMateria(materia);
         });
     });
+}
 
-    document.getElementById('modal-close').addEventListener('click', cerrarModalMateria);
-    document.getElementById('btn-guardar-materia').addEventListener('click', guardarMateria);
-    document.getElementById('btn-borrar-materia').addEventListener('click', borrarMateria);
-    document.getElementById('btn-cancelar-materia').addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalMateria(); });
+function configurarListeners() {
+    document.getElementById('btn-nueva-materia')?.addEventListener('click', () => abrirModalMateria());
+    document.getElementById('modal-close')?.addEventListener('click', cerrarModalMateria);
+    document.getElementById('btn-guardar-materia')?.addEventListener('click', guardarMateria);
+    document.getElementById('btn-borrar-materia')?.addEventListener('click', borrarMateria);
+    document.getElementById('btn-cancelar-materia')?.addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalMateria(); });
 }
 
 function abrirModalMateria(materia = null) {
@@ -90,12 +75,20 @@ function abrirModalMateria(materia = null) {
     const inputDesc = document.getElementById('materia-descripcion');
     const btnBorrar = document.getElementById('btn-borrar-materia');
 
+    if (!modal || !titulo || !inputId || !inputNombre || !inputDesc || !btnBorrar) return;
+
     if (materia) {
         titulo.textContent = `Materia #${materia.id}`;
         inputId.value = materia.id;
         inputNombre.value = materia.materia_nombre || '';
         inputDesc.value = materia.materia_descripcion || '';
-        btnBorrar.style.display = '';
+        
+        // El docente no puede ver el botón borrar
+        if (window.usuarioEsDocente) {
+            btnBorrar.style.display = 'none';
+        } else {
+            btnBorrar.style.display = '';
+        }
     } else {
         titulo.textContent = 'Nueva Materia';
         inputId.value = '';
@@ -133,7 +126,7 @@ async function guardarMateria(e) {
 
     mostrarMensaje('success', `Materia ${id ? 'actualizada' : 'creada'} correctamente`);
     cerrarModalMateria();
-    if (containerElement) cargarVistaMaterias(containerElement);
+    cargarVistaMaterias();
 }
 
 async function borrarMateria(e) {
@@ -150,12 +143,13 @@ async function borrarMateria(e) {
     mostrarMensaje('success', 'Materia eliminada correctamente');
 
     cerrarModalMateria();
-    if (containerElement) cargarVistaMaterias(containerElement);
+    cargarVistaMaterias();
 }
 
-function limpiarFormularioMateria() {
-    document.getElementById('materia-id').value = '';
-    document.getElementById('materia-nombre').value = '';
-    document.getElementById('materia-descripcion').value = '';
-    document.getElementById('materia-nombre').focus();
+if (window.layoutReady) {
+    cargarVistaMaterias();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaMaterias();
+    });
 }

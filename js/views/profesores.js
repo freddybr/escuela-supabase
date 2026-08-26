@@ -1,13 +1,17 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje } from '../ui.js';
 import { ProfesorService, GradoService, AuthService } from '../services.js';
 
-let containerElement = null;
 let editandoProfeId = null;
 let _tienePermisoRol = false;
+let modalInitialized = false;
 
-export async function cargarVistaProfesores(container) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando Profesores...</div>';
+export async function cargarVistaProfesores() {
+    const tableBody = document.getElementById('tabla-profesores-body');
+    const selectFilterGrado = document.getElementById('filter-grado-profesores');
+
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="loading">Consultando Profesores...</td></tr>';
+    }
 
     const [resProfesores, resGrados, resUser] = await Promise.all([
         ProfesorService.getProfesores(),
@@ -20,136 +24,91 @@ export async function cargarVistaProfesores(container) {
     _tienePermisoRol = userEmail.toLowerCase() === 'freddybr.igle@gmail.com' || (currentProfe && currentProfe.profe_rol?.toLowerCase() === 'superadmin');
 
     if (resProfesores.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${resProfesores.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="error-msg">❌ Error: ${resProfesores.error.message}</td></tr>`;
+        }
         return;
     }
 
     if (resGrados.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error (grados): ${resGrados.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="error-msg">❌ Error (grados): ${resGrados.error.message}</td></tr>`;
+        }
         return;
     }
 
     const profesores = resProfesores.data || [];
     const grados = resGrados.data || [];
     const gradosById = new Map(grados.map(g => [String(g.id), g.grado_nombre]));
-    const opcionesGrados = grados.map(g => `<option value="${g.id}">${g.grado_nombre}</option>`).join('');
 
-    profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
+    // Rellenar select del modal
+    const selGradoModal = document.getElementById('profe-grado');
+    if (selGradoModal) {
+        selGradoModal.innerHTML = '<option value="">-- Seleccionar Grado --</option>' +
+            grados.map(g => `<option value="${g.id}">${g.grado_nombre}</option>`).join('');
+    }
 
+    // Rellenar select de filtro
     const gradosDeProfesores = [...new Set(
         profesores.map(p => gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado')).filter(Boolean)
     )].sort();
 
-    let htmlTemplate = `
-        ${renderHeaderSeccion('profesores', 'Profesores', 'Información general y gestión de profesores.', `<div class="header-action-container"><button id="btn-nuevo-profesor" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
+    if (selectFilterGrado) {
+        selectFilterGrado.innerHTML = '<option value="">Todos los Grados</option>' +
+            gradosDeProfesores.map(grado => `<option value="${grado}">${grado}</option>`).join('');
+    }
 
-        <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">
-            <div style="width: 220px;">
-                <select id="filter-grado-profesores" class="form-select">
-                    <option value="">Todos los Grados</option>
-                    ${gradosDeProfesores.map(grado => `<option value="${grado}">${grado}</option>`).join('')}
-                </select>
-            </div>
-        </div>
+    profesores.sort((a, b) => (a.id || 0) - (b.id || 0));
 
-        <div class="table-responsive table-profesores-scroll">
-            <table class="data-table" id="tabla-profesores">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th style="width: 90px; text-align: center;">Foto</th>
-                        <th>Grado</th>
-                        <th>Nombre</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Estatus</th>
-                        <th>Rol</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${profesores.map(p => {
-                        const fotoUrl = p.profe_imagen_url && p.profe_imagen_url.trim() !== ''
-                            ? p.profe_imagen_url
-                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.profe_nombre)}&backgroundColor=4f46e5`;
+    if (tableBody) {
+        if (profesores.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No hay profesores registrados.</td></tr>';
+        } else {
+            tableBody.innerHTML = profesores.map(p => {
+                const fotoUrl = p.profe_imagen_url && p.profe_imagen_url.trim() !== ''
+                    ? p.profe_imagen_url
+                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.profe_nombre)}&backgroundColor=4f46e5`;
 
-                        const nombreGrado = gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado');
+                const nombreGrado = gradosById.get(String(p.grado_id)) || (p.grado_id ? `#${p.grado_id}` : 'Sin grado');
 
-                        return `
-                        <tr data-id="${p.id}" data-grado="${nombreGrado}" class="fila-profesor" style="cursor: pointer;">
-                            <td data-label="ID"><strong># ${p.id}</strong></td>
-                            <td data-label="Foto" style="text-align: center;">
-                                <img src="${fotoUrl}" alt="${p.profe_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
-                            </td>
-                            <td data-label="Grado"><span class="badge" style="background-color: #e0e7ff; color: #3730a3;">${nombreGrado}</span></td>
-                            <td data-label="Nombre" class="text-bold">${p.profe_nombre}</td>
-                            <td data-label="Email"><span class="text-light">${p.profe_email || '-'}</span></td>
-                            <td data-label="Teléfono"><span class="text-light">${p.profe_telf || '-'}</span></td>
-                            <td data-label="Estatus">
-                                <span class="badge" style="background-color: ${p.profe_estatus === 'Activo' ? '#c7f9cc' : '#ffccd5'}; color: #000;">
-                                    ${p.profe_estatus || 'N/A'}
-                                </span>
-                            </td>
-                            <td data-label="Rol"><span class="text-light">${p.profe_rol || '-'}</span></td>
-                        </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
+                return `
+                <tr data-id="${p.id}" data-grado="${nombreGrado}" class="fila-profesor" style="cursor: pointer;">
+                    <td data-label="ID"><strong># ${p.id}</strong></td>
+                    <td data-label="Foto" style="text-align: center;">
+                        <img src="${fotoUrl}" alt="${p.profe_nombre}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
+                    </td>
+                    <td data-label="Grado"><span class="badge" style="background-color: #e0e7ff; color: #3730a3;">${nombreGrado}</span></td>
+                    <td data-label="Nombre" class="text-bold">${p.profe_nombre}</td>
+                    <td data-label="Email"><span class="text-light">${p.profe_email || '-'}</span></td>
+                    <td data-label="Teléfono"><span class="text-light">${p.profe_telf || '-'}</span></td>
+                    <td data-label="Estatus">
+                        <span class="badge" style="background-color: ${p.profe_estatus === 'Activo' ? '#c7f9cc' : '#ffccd5'}; color: #000;">
+                            ${p.profe_estatus || 'N/A'}
+                        </span>
+                    </td>
+                    <td data-label="Rol"><span class="text-light">${p.profe_rol || '-'}</span></td>
+                </tr>
+                `;
+            }).join('');
+        }
+    }
 
-        <div id="modal-profesor" class="modal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-profesor-title">Profesor</h3>
-                    <button id="modal-profesor-close" class="modal-close">✕</button>
-                </div>
-                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                    <form id="form-profesor">
-                        <div class="form-row">
-                            <label>Nombre Completo *</label>
-                            <input id="profe-nombre" type="text" required placeholder="Nombre del profesor">
-                        </div>
-                        <div class="form-row">
-                            <label>Grado Asignado</label>
-                            <select id="profe-grado">
-                                <option value="">-- Seleccionar Grado --</option>
-                                ${opcionesGrados}
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Correo Electrónico</label>
-                            <input id="profe-email" type="email" placeholder="profesor@ejemplo.com">
-                        </div>
-                        <div class="form-row">
-                            <label>Teléfono</label>
-                            <input id="profe-telf" type="tel" placeholder="Ej: +58 412 0000000">
-                        </div>
-                        <div class="form-row">
-                            <label>Estatus</label>
-                            <select id="profe-estatus">
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Rol</label>
-                            <input id="profe-rol" type="text" placeholder="Ej: Titular, Auxiliar, Coordinador">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button id="btn-cancelar-profesor" class="btn-secondary">Cancelar</button>
-                    <button id="btn-borrar-profesor" class="btn-danger" style="display:none;">Eliminar</button>
-                    <button id="btn-guardar-profesor" class="btn-primary">Guardar</button>
-                </div>
-            </div>
-        </div>
-    `;
+    // Configurar botón nuevo profesor
+    const btnNuevoProfesor = document.getElementById('btn-nuevo-profesor');
+    if (btnNuevoProfesor) {
+        if (window.usuarioEsDocente) {
+            btnNuevoProfesor.style.display = 'none';
+        } else {
+            btnNuevoProfesor.style.display = '';
+        }
+    }
 
-    container.innerHTML = htmlTemplate;
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
-    document.getElementById('btn-nuevo-profesor')?.addEventListener('click', () => abrirModalProfesor());
-
+    // Configurar clics de las filas
     document.querySelectorAll('.fila-profesor').forEach(row => {
         row.addEventListener('click', async () => {
             const id = row.getAttribute('data-id');
@@ -157,11 +116,14 @@ export async function cargarVistaProfesores(container) {
             if (profe) abrirModalProfesor(profe);
         });
     });
+}
 
-    document.getElementById('modal-profesor-close').addEventListener('click', () => cerrarModalProfesor());
-    document.getElementById('btn-guardar-profesor').addEventListener('click', guardarProfesor);
-    document.getElementById('btn-borrar-profesor').addEventListener('click', borrarProfesor);
-    document.getElementById('btn-cancelar-profesor').addEventListener('click', (e) => { e.preventDefault(); cerrarModalProfesor(); });
+function configurarListeners() {
+    document.getElementById('btn-nuevo-profesor')?.addEventListener('click', () => abrirModalProfesor());
+    document.getElementById('modal-profesor-close')?.addEventListener('click', () => cerrarModalProfesor());
+    document.getElementById('btn-guardar-profesor')?.addEventListener('click', guardarProfesor);
+    document.getElementById('btn-borrar-profesor')?.addEventListener('click', borrarProfesor);
+    document.getElementById('btn-cancelar-profesor')?.addEventListener('click', (e) => { e.preventDefault(); cerrarModalProfesor(); });
 
     const filterGrado = document.getElementById('filter-grado-profesores');
     filterGrado?.addEventListener('change', () => {
@@ -189,6 +151,11 @@ function abrirModalProfesor(profe = null) {
     const inpRol = document.getElementById('profe-rol');
     const btnBorrar = document.getElementById('btn-borrar-profesor');
 
+    if (!modal || !titulo || !inpNombre || !selGrado || !inpEmail || !inpTelf || !selEstatus || !inpRol || !btnBorrar) return;
+
+    // Configurar habilitación del campo rol según privilegios
+    inpRol.disabled = !_tienePermisoRol;
+
     if (profe) {
         editandoProfeId = profe.id;
         titulo.textContent = `Profesor #${profe.id}`;
@@ -198,7 +165,12 @@ function abrirModalProfesor(profe = null) {
         inpTelf.value = profe.profe_telf || '';
         selEstatus.value = profe.profe_estatus || 'Activo';
         inpRol.value = profe.profe_rol || '';
-        btnBorrar.style.display = '';
+        
+        if (window.usuarioEsDocente) {
+            btnBorrar.style.display = 'none';
+        } else {
+            btnBorrar.style.display = '';
+        }
     } else {
         editandoProfeId = null;
         titulo.textContent = 'Nuevo Profesor';
@@ -208,17 +180,7 @@ function abrirModalProfesor(profe = null) {
         inpTelf.value = '';
         selEstatus.value = 'Activo';
         inpRol.value = '';
-    }
-    
-    if (inpRol) {
-        inpRol.disabled = !_tienePermisoRol;
-        if (!_tienePermisoRol) {
-            inpRol.title = 'Solo Superadministradores pueden modificar el Rol';
-            inpRol.placeholder = 'Rol (Solo lectura)';
-        } else {
-            inpRol.title = '';
-            inpRol.placeholder = 'Ej: Titular, Auxiliar, Coordinador';
-        }
+        btnBorrar.style.display = 'none';
     }
 
     modal.style.display = 'flex';
@@ -245,9 +207,13 @@ async function guardarProfesor(e) {
         grado_id: grado_id ? parseInt(grado_id, 10) : null,
         profe_email: email,
         profe_telf: telf,
-        profe_estatus: estatus,
-        profe_rol: rol
+        profe_estatus: estatus
     };
+
+    // Solo guardar el rol si se tiene permiso para editarlo
+    if (_tienePermisoRol) {
+        payload.profe_rol = rol;
+    }
 
     if (editandoProfeId) {
         const { error } = await ProfesorService.saveProfesor(editandoProfeId, payload);
@@ -257,7 +223,7 @@ async function guardarProfesor(e) {
         const { data: ultimoProfe, error: errorMax } = await ProfesorService.getUltimoProfesor();
 
         if (errorMax) {
-            mostrarMensaje('error', 'Error al obtener correlativo de ID: ' + errorMax.message);
+            mostrarMensaje('error', 'Error al obtener el correlativo de ID: ' + errorMax.message);
             return;
         }
 
@@ -271,7 +237,7 @@ async function guardarProfesor(e) {
     }
 
     cerrarModalProfesor();
-    if (containerElement) cargarVistaProfesores(containerElement);
+    cargarVistaProfesores();
 }
 
 async function borrarProfesor(e) {
@@ -286,15 +252,13 @@ async function borrarProfesor(e) {
     mostrarMensaje('success', 'Profesor eliminado correctamente');
 
     cerrarModalProfesor();
-    if (containerElement) cargarVistaProfesores(containerElement);
+    cargarVistaProfesores();
 }
 
-function limpiarFormularioProfesor() {
-    document.getElementById('profe-nombre').value = '';
-    document.getElementById('profe-grado').value = '';
-    document.getElementById('profe-email').value = '';
-    document.getElementById('profe-telf').value = '';
-    document.getElementById('profe-estatus').value = 'Activo';
-    document.getElementById('profe-rol').value = '';
-    document.getElementById('profe-nombre').focus();
+if (window.layoutReady) {
+    cargarVistaProfesores();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaProfesores();
+    });
 }

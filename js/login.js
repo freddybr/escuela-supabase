@@ -32,7 +32,7 @@ if (loginForm) {
         }
 
         if (data?.user) {
-            window.location.href = 'app.html';
+            window.location.href = 'pages/dashboard.html';
         }
     });
 }

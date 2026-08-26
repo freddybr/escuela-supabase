@@ -1,13 +1,20 @@
-import { renderHeaderSeccion } from '../ui.js';
 import { ClaseService } from '../services.js';
 
-export async function cargarVistaClases(container) {
-    container.innerHTML = '<div class="loading">Consultando Clases...</div>';
+export async function cargarVistaClases() {
+    const tableBody = document.getElementById('tabla-clases-body');
+    const selectPrograma = document.getElementById('filter-programa-clases');
+    const inputSearch = document.getElementById('filter-search-clases');
+
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading">Consultando Clases...</td></tr>';
+    }
 
     const { data: clases, error } = await ClaseService.getClasesWithProgramas();
 
     if (error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="error-msg">❌ Error: ${error.message}</td></tr>`;
+        }
         return;
     }
 
@@ -15,67 +22,38 @@ export async function cargarVistaClases(container) {
         clases.map(c => c.programas?.programa_tema).filter(Boolean)
     )].sort();
 
-    let htmlTemplate = `
-    ${renderHeaderSeccion('clases', 'Clases', 'Listado General de Clases.')}
+    // Rellenar select de programas para filtrar
+    if (selectPrograma) {
+        selectPrograma.innerHTML = '<option value="">Programas</option>' +
+            programasUnicos.map(programa => `<option value="${programa}">${programa}</option>`).join('');
+    }
 
-    <div class="filters-bar filters-bar-small" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: center;">
-        <div style="flex: 1 1 240px; min-width: 140px;">
-            <input 
-                type="text" 
-                id="filter-search-clases" 
-                class="form-control" 
-                placeholder="Buscar Número, Tema, Objetivo, Texto..." 
-            >
-        </div>
-        <div style="width: 220px;">
-            <select id="filter-programa-clases" class="form-select">
-                <option value="">Programas</option>
-                ${programasUnicos.map(programa => `<option value="${programa}">${programa}</option>`).join('')}
-            </select>
-        </div>
-    </div>
-
-    <div class="table-responsive table-clases-scroll">
-        <table class="data-table" id="tabla-clases">
-            <thead>
-                <tr>
-                    <th>Num</th>
-                    <th>Tema</th>
-                    <th>Objetivo</th>
-                    <th>Texto</th>
-                    <th>Programa</th>
+    // Dibujar la tabla
+    if (tableBody) {
+        if (clases.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">No hay clases registradas.</td></tr>';
+        } else {
+            const sortedClases = [...clases].sort((a, b) => (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0));
+            tableBody.innerHTML = sortedClases.map(c => {
+                const nombrePrograma = c.programas?.programa_tema || 'Sin programa';
+                return `
+                <tr 
+                data-num="${c.clase_num || ''}"
+                data-tema="${c.clase_tema || ''}" 
+                data-objetivo="${c.clase_objetivo || ''}"
+                data-texto="${c.clase_texto || ''}"
+                data-programa="${nombrePrograma}"
+                >
+                    <td data-label="Num"><strong># ${c.clase_num}</strong></td>
+                    <td data-label="Tema" class="text-bold">${c.clase_tema}</td>
+                    <td data-label="Objetivo"><span class="text-light">${c.clase_objetivo}</span></td>
+                    <td data-label="Texto"><span class="text-light">${c.clase_texto || ''}</span></td>
+                    <td data-label="Programa"><span class="text-light">${nombrePrograma}</span></td>
                 </tr>
-            </thead>
-            <tbody>
-                ${[...clases]
-                    .sort((a, b) => (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0))
-                    .map(c => {
-                        const nombrePrograma = c.programas?.programa_tema || 'Sin programa';
-                        return `
-                        <tr 
-                        data-num="${c.clase_num || ''}"
-                        data-tema="${c.clase_tema || ''}" 
-                        data-objetivo="${c.clase_objetivo || ''}"
-                        data-texto="${c.clase_texto || ''}"
-                        data-programa="${nombrePrograma}"
-                        >
-                            <td data-label="Num"><strong># ${c.clase_num}</strong></td>
-                            <td data-label="Tema" class="text-bold">${c.clase_tema}</td>
-                            <td data-label="Objetivo"><span class="text-light">${c.clase_objetivo}</span></td>
-                            <td data-label="Texto"><span class="text-light">${c.clase_texto || ''}</span></td>
-                            <td data-label="Programa"><span class="text-light">${nombrePrograma}</span></td>
-                        </tr>
-                        `;
-                    }).join('')}
-            </tbody>
-        </table>
-    </div>
-    `;
-
-    container.innerHTML = htmlTemplate;
-
-    const inputSearch = document.getElementById('filter-search-clases');
-    const selectPrograma = document.getElementById('filter-programa-clases');
+                `;
+            }).join('');
+        }
+    }
 
     const aplicarFiltrosClases = () => {
         const textoBusqueda = (inputSearch?.value || '').toLowerCase();
@@ -85,8 +63,8 @@ export async function cargarVistaClases(container) {
 
         filas.forEach(row => {
             const num = (row.getAttribute('data-num') || '').toLowerCase();
-            const tema = row.getAttribute('data-tema').toLowerCase();
-            const objetivo = row.getAttribute('data-objetivo').toLowerCase();
+            const tema = row.getAttribute('data-tema')?.toLowerCase() || '';
+            const objetivo = row.getAttribute('data-objetivo')?.toLowerCase() || '';
             const texto = (row.getAttribute('data-texto') || '').toLowerCase();
             const programa = row.getAttribute('data-programa');
 
@@ -109,4 +87,12 @@ export async function cargarVistaClases(container) {
 
     inputSearch?.addEventListener('input', aplicarFiltrosClases);
     selectPrograma?.addEventListener('change', aplicarFiltrosClases);
+}
+
+if (window.layoutReady) {
+    cargarVistaClases();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaClases();
+    });
 }

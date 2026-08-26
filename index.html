@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escuela Digital - Bienvenid@</title>
-    <!-- PWA & Icon Setup -->
-    <link rel="manifest" href="manifest.json">
+    <!-- Icon Setup -->
     <link rel="icon" type="image/png" sizes="32x32" href="image/EscuelaIco-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="image/EscuelaIco-16x16.png">
     <link rel="shortcut icon" href="image/EscuelaIco.ico">
@@ -75,16 +74,6 @@
             <p id="login-error" class="error-msg hidden"></p>
         </div>
     </div>
-
     <script type="module" src="./js/login.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
-                    .catch(err => console.error('Error al registrar el Service Worker:', err));
-            });
-        }
-    </script>
 </body>
 </html>

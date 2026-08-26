@@ -1,9 +1,9 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje, getFallbackAvatarUrl } from '../ui.js';
 import { ProfesorService, AlumnoService, AuthService } from '../services.js';
 
-let containerElement = null;
 let checkUserCallback = null;
 let _datosPerfil = { profesores: [], alumnos: [] };
+let modalInitialized = false;
 
 // Helper seguro para localStorage
 const safeLocalStorage = {
@@ -24,10 +24,8 @@ const safeLocalStorage = {
     }
 };
 
-export async function cargarVistaConfiguracion(container, onPhotoUpdated = null) {
-    containerElement = container;
+export async function cargarVistaConfiguracion(onPhotoUpdated = null) {
     checkUserCallback = onPhotoUpdated;
-    container.innerHTML = '<div class="loading">Cargando opciones de configuración...</div>';
 
     // Obtener información del usuario autenticado
     const resUser = await AuthService.getUser();
@@ -59,242 +57,102 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     const savedTheme = safeLocalStorage.getItem('theme') || 'light';
     const savedTimeout = safeLocalStorage.getItem('inactiveTimeout') || '0'; // 0 = Nunca
 
-    let selectUsuarioHtml = '';
-    if (esSuperadminGeneral) {
-        const usuariosOptions = [];
-        usuariosOptions.push(`<option value="${userEmail}" selected>Mi propia cuenta (${userEmail})</option>`);
+    // Ocultar pestaña perfil si es docente
+    const tabPerfilBtn = document.getElementById('tab-btn-perfil');
+    const tabCuentaBtn = document.getElementById('tab-btn-cuenta');
+    const sectionPerfil = document.getElementById('section-perfil');
+    const sectionCuenta = document.getElementById('section-cuenta');
 
-        // Profesores
-        _datosPerfil.profesores.forEach(p => {
-            if (p.profe_email && p.profe_email.toLowerCase() !== userEmail.toLowerCase()) {
-                usuariosOptions.push(`<option value="${p.profe_email}">Profesor: ${p.profe_nombre} (${p.profe_email})</option>`);
-            }
-        });
-
-        // Alumnos
-        _datosPerfil.alumnos.forEach(a => {
-            if (a.alumno_email && a.alumno_email.toLowerCase() !== userEmail.toLowerCase()) {
-                usuariosOptions.push(`<option value="${a.alumno_email}">Alumno: ${a.alumno_nombre} (${a.alumno_email})</option>`);
-            }
-        });
-
-        selectUsuarioHtml = `
-        <div class="form-row">
-            <label for="change-password-target-user" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Seleccionar Usuario</label>
-            <select id="change-password-target-user" class="form-select">
-                ${usuariosOptions.join('')}
-            </select>
-        </div>
-        `;
+    if (esDocente) {
+        if (tabPerfilBtn) tabPerfilBtn.style.display = 'none';
+        if (sectionPerfil) sectionPerfil.classList.remove('active');
+        if (tabCuentaBtn) tabCuentaBtn.classList.add('active');
+        if (sectionCuenta) sectionCuenta.classList.add('active');
+    } else {
+        if (tabPerfilBtn) tabPerfilBtn.style.display = '';
+        if (tabPerfilBtn) tabPerfilBtn.classList.add('active');
+        if (sectionPerfil) sectionPerfil.classList.add('active');
+        if (tabCuentaBtn) tabCuentaBtn.classList.remove('active');
+        if (sectionCuenta) sectionCuenta.classList.remove('active');
     }
 
-    let htmlTemplate = `
-    ${renderHeaderSeccion('configuracion', 'Configuración de Sistema', 'Gestione sus datos de perfil, seguridad de cuenta y personalice la apariencia.')}
+    if (!tieneAccesoSeguridad) {
+        if (tabCuentaBtn) tabCuentaBtn.style.display = 'none';
+        if (sectionCuenta) sectionCuenta.style.display = 'none';
+    } else {
+        if (tabCuentaBtn) tabCuentaBtn.style.display = '';
+        if (sectionCuenta) sectionCuenta.style.display = '';
 
-    <div class="config-layout">
-        <!-- BARRA LATERAL DE CONFIGURACIÓN -->
-        <div class="config-sidebar">
-            ${esDocente ? '' : `
-            <button type="button" class="config-tab-btn active" data-target="section-perfil">
-                <svg class="config-tab-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Perfil</span>
-            </button>
-            `}
-            ${tieneAccesoSeguridad ? `
-            <button type="button" class="config-tab-btn ${esDocente ? 'active' : ''}" data-target="section-cuenta">
-                <svg class="config-tab-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span>Seguridad</span>
-            </button>
-            ` : ''}
-            <button type="button" class="config-tab-btn" data-target="section-apariencia">
-                <svg class="config-tab-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="M12 12h10"/></svg>
-                <span>Apariencia</span>
-            </button>
-        </div>
+        // Poblar datos de la cuenta
+        const emailEl = document.getElementById('info-user-email');
+        if (emailEl) emailEl.textContent = userEmail;
 
-        <!-- CONTENIDO DE CONFIGURACIÓN -->
-        <div class="config-content">
-            
-            <!-- 1. SECCIÓN PERFIL -->
-            <div id="section-perfil" class="config-section ${esDocente ? '' : 'active'}">
-                <h3 class="config-section-title">Asociación de Perfil</h3>
-                <p class="config-section-subtitle">Gestión e inyección de fotografías para usuarios en la base de datos.</p>
-                
-                <div class="profile-panel" style="margin: 0; max-width: 100%; box-shadow: none; border: none; padding: 0;">
-                    <div class="profile-row">
-                        <label for="perfil-tipo-usuario">Tipo de Usuario</label>
-                        <select id="perfil-tipo-usuario" class="form-select">
-                            <option value="profesor">Profesor</option>
-                            <option value="alumno">Alumno</option>
-                        </select>
-                    </div>
+        const createdEl = document.getElementById('info-user-created');
+        if (createdEl) createdEl.textContent = userCreated;
 
-                    <div class="profile-row">
-                        <label for="perfil-id-registro">Seleccionar Registro</label>
-                        <select id="perfil-id-registro" class="form-select">
-                        </select>
-                    </div>
+        const idEl = document.getElementById('info-user-id');
+        if (idEl) idEl.textContent = userId;
 
-                    <div class="profile-avatar-card">
-                        <p id="perfil-foto-titulo" class="profile-avatar-title">Fotografía Actual</p>
-                        <div style="position: relative; width: 120px; height: 120px; margin: 0 auto;">
-                            <img id="perfil-foto-preview" src="https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5" alt="Vista previa" class="profile-avatar-image" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Usuario&backgroundColor=4f46e5'">
-                        </div>
-                    </div>
+        // Mostrar selector de usuario si es superadmin
+        const containerPassUser = document.getElementById('change-password-user-container');
+        if (containerPassUser) {
+            if (esSuperadminGeneral) {
+                const usuariosOptions = [];
+                usuariosOptions.push(`<option value="${userEmail}" selected>Mi propia cuenta (${userEmail})</option>`);
 
-                    <div class="profile-row">
-                        <label for="perfil-input-file">Seleccionar Nueva Foto</label>
-                        <input type="file" id="perfil-input-file" accept="image/*" class="form-control">
-                    </div>
+                _datosPerfil.profesores.forEach(p => {
+                    if (p.profe_email && p.profe_email.toLowerCase() !== userEmail.toLowerCase()) {
+                        usuariosOptions.push(`<option value="${p.profe_email}">Profesor: ${p.profe_nombre} (${p.profe_email})</option>`);
+                    }
+                });
 
-                    <div class="profile-button-row">
-                        <button type="button" id="btn-cancelar-foto" class="btn-secondary-alt" style="display: none;">
-                            Cancelar
-                        </button>
-                        <button type="button" id="btn-guardar-foto" class="btn-primary-alt">
-                            Guardar Fotografía
-                        </button>
-                    </div>
+                _datosPerfil.alumnos.forEach(a => {
+                    if (a.alumno_email && a.alumno_email.toLowerCase() !== userEmail.toLowerCase()) {
+                        usuariosOptions.push(`<option value="${a.alumno_email}">Alumno: ${a.alumno_nombre} (${a.alumno_email})</option>`);
+                    }
+                });
+
+                containerPassUser.innerHTML = `
+                <div class="form-row">
+                    <label for="change-password-target-user" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Seleccionar Usuario</label>
+                    <select id="change-password-target-user" class="form-select">
+                        ${usuariosOptions.join('')}
+                    </select>
                 </div>
-            </div>
+                `;
+            } else {
+                containerPassUser.innerHTML = '';
+            }
+        }
+    }
 
-            <!-- 2. SECCIÓN SEGURIDAD Y CUENTA -->
-            ${tieneAccesoSeguridad ? `
-            <div id="section-cuenta" class="config-section ${esDocente ? 'active' : ''}">
-                <h3 class="config-section-title">Seguridad y Cuenta</h3>
-                <p class="config-section-subtitle">Gestione la autenticación, contraseña y la sesión de su usuario.</p>
-                
-                <div class="config-card">
-                    <div class="config-card-title">
-                        <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Datos de la Cuenta
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; font-size: 0.88rem;">
-                        <div>
-                            <strong style="color:var(--text-secondary)">Correo Electrónico:</strong>
-                            <p style="color:var(--text-muted); margin-top:4px;">${userEmail}</p>
-                        </div>
-                        <div>
-                            <strong style="color:var(--text-secondary)">Creado el:</strong>
-                            <p style="color:var(--text-muted); margin-top:4px;">${userCreated}</p>
-                        </div>
-                        <div>
-                            <strong style="color:var(--text-secondary)">Usuario ID:</strong>
-                            <p style="color:var(--text-muted); margin-top:4px; font-family:monospace; word-break:break-all;">${userId}</p>
-                        </div>
-                    </div>
-                </div>
+    // Inactividad
+    const selectInactivity = document.getElementById('select-inactivity');
+    if (selectInactivity) {
+        selectInactivity.value = savedTimeout;
+    }
 
-                <div class="config-card">
-                    <div class="config-card-title">
-                        <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Cambiar Contraseña
-                    </div>
-                    <form id="form-change-password" style="display: flex; flex-direction: column; gap: 16px;">
-                        ${selectUsuarioHtml}
-                        <div class="form-row">
-                            <label for="new-password" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Nueva Contraseña</label>
-                            <input type="password" id="new-password" class="form-control" placeholder="Escriba su nueva contraseña" required minlength="6">
-                        </div>
-                        <div class="form-row">
-                            <label for="confirm-password" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Confirmar Nueva Contraseña</label>
-                            <input type="password" id="confirm-password" class="form-control" placeholder="Repita su nueva contraseña" required minlength="6">
-                        </div>
-                        <div style="display:flex; justify-content:flex-end;">
-                            <button type="submit" class="btn-primary-alt">Actualizar Contraseña</button>
-                        </div>
-                    </form>
-                </div>
+    // Temas active classes
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.classList.remove('active');
+        if (card.getAttribute('data-theme') === savedTheme) {
+            card.classList.add('active');
+        }
+    });
 
-                <div class="config-card">
-                    <div class="config-card-title">
-                        <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Gestión de Sesión por Inactividad
-                    </div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-                        Para proteger su información, el sistema puede cerrar sesión de forma automática si no se detecta actividad en el navegador.
-                    </div>
-                    <div class="form-row" style="max-width: 300px;">
-                        <label for="select-inactivity" style="font-weight:600; font-size:0.85rem; color:var(--text-secondary);">Cerrar sesión automáticamente tras:</label>
-                        <select id="select-inactivity" class="form-select">
-                            <option value="0">Nunca cerrar sesión automáticamente</option>
-                            <option value="1">1 Minuto (Para pruebas)</option>
-                            <option value="15">15 Minutos</option>
-                            <option value="30">30 Minutos</option>
-                            <option value="60">60 Minutos (1 hora)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
+    if (!modalInitialized) {
+        configurarListeners(userEmail);
+        modalInitialized = true;
+    }
 
-            <!-- 3. SECCIÓN APARIENCIA -->
-            <div id="section-apariencia" class="config-section">
-                <h3 class="config-section-title">Personalización de Apariencia</h3>
-                <p class="config-section-subtitle">Ajuste la paleta cromática de la aplicación según sus preferencias.</p>
-                
-                <div class="theme-grid">
-                    <!-- Tema Claro -->
-                    <div class="theme-card ${savedTheme === 'light' ? 'active' : ''}" data-theme="light">
-                        <div class="theme-preview-dots">
-                            <span class="theme-dot" style="background-color: #f8fafc"></span>
-                            <span class="theme-dot" style="background-color: #ffffff"></span>
-                            <span class="theme-dot" style="background-color: #4f46e5"></span>
-                        </div>
-                        <span class="theme-card-name">☀️ Claro</span>
-                    </div>
+    // Inicializar perfil
+    cambiarTipoPerfil();
+}
 
-                    <!-- Tema Oscuro -->
-                    <div class="theme-card ${savedTheme === 'dark' ? 'active' : ''}" data-theme="dark">
-                        <div class="theme-preview-dots">
-                            <span class="theme-dot" style="background-color: #0b1329"></span>
-                            <span class="theme-dot" style="background-color: #1e293b"></span>
-                            <span class="theme-dot" style="background-color: #818cf8"></span>
-                        </div>
-                        <span class="theme-card-name">🌙 Oscuro</span>
-                    </div>
-
-                    <!-- Tema Sepia -->
-                    <div class="theme-card ${savedTheme === 'sepia' ? 'active' : ''}" data-theme="sepia">
-                        <div class="theme-preview-dots">
-                            <span class="theme-dot" style="background-color: #f4ecd8"></span>
-                            <span class="theme-dot" style="background-color: #fdf6e3"></span>
-                            <span class="theme-dot" style="background-color: #b45309"></span>
-                        </div>
-                        <span class="theme-card-name">🍂 Sepia</span>
-                    </div>
-
-                    <!-- Tema Indigo -->
-                    <div class="theme-card ${savedTheme === 'indigo' ? 'active' : ''}" data-theme="indigo">
-                        <div class="theme-preview-dots">
-                            <span class="theme-dot" style="background-color: #f0f4ff"></span>
-                            <span class="theme-dot" style="background-color: #ffffff"></span>
-                            <span class="theme-dot" style="background-color: #4f46e5"></span>
-                        </div>
-                        <span class="theme-card-name">🌊 Océano Blue</span>
-                    </div>
-
-                    <!-- Tema Bosque -->
-                    <div class="theme-card ${savedTheme === 'forest' ? 'active' : ''}" data-theme="forest">
-                        <div class="theme-preview-dots">
-                            <span class="theme-dot" style="background-color: #f2f7f5"></span>
-                            <span class="theme-dot" style="background-color: #ffffff"></span>
-                            <span class="theme-dot" style="background-color: #10b981"></span>
-                        </div>
-                        <span class="theme-card-name">🌲 Bosque</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = htmlTemplate;
-
+function configurarListeners(userEmail) {
     // --- LÓGICA DE NAVEGACIÓN ENTRE PESTAÑAS ---
-    const tabButtons = container.querySelectorAll('.config-tab-btn');
-    const sections = container.querySelectorAll('.config-section');
+    const tabButtons = document.querySelectorAll('.config-tab-btn');
+    const sections = document.querySelectorAll('.config-section');
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -303,12 +161,12 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
 
             btn.classList.add('active');
             const targetId = btn.getAttribute('data-target');
-            const targetSection = container.querySelector(`#${targetId}`);
+            const targetSection = document.getElementById(targetId);
             if (targetSection) targetSection.classList.add('active');
         });
     });
 
-    // --- LÓGICA DE GESTIÓN DE PERFIL (Migración) ---
+    // --- LÓGICA DE GESTIÓN DE PERFIL ---
     const selTipo = document.getElementById('perfil-tipo-usuario');
     const selRegistro = document.getElementById('perfil-id-registro');
     const imgPreview = document.getElementById('perfil-foto-preview');
@@ -338,24 +196,8 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
         actualizarPreviewFoto();
     };
 
-    const cambiarTipoPerfil = () => {
-        const tipo = selTipo?.value;
-        if (!selRegistro) return;
-
-        const lista = tipo === 'profesor' ? _datosPerfil.profesores : _datosPerfil.alumnos;
-
-        selRegistro.innerHTML = lista.map(item => {
-            const nombre = tipo === 'profesor' ? item.profe_nombre : item.alumno_nombre;
-            const foto = tipo === 'profesor' ? item.profe_imagen_url : item.alumno_imagen_url;
-            return `<option value="${item.id}" data-foto="${foto || ''}" data-nombre="${nombre}">${nombre} (#${item.id})</option>`;
-        }).join('');
-
-        limpiarSeleccionFoto();
-    };
-
     const previsualizarArchivoSeleccionado = (input) => {
         const file = input.files[0];
-
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -376,7 +218,6 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
             mostrarMensaje('error', 'Seleccione un registro válido');
             return;
         }
-
         if (!archivo) {
             mostrarMensaje('error', 'Seleccione un archivo de imagen antes de guardar');
             return;
@@ -402,8 +243,8 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
         }
 
         mostrarMensaje('success', 'Fotografía actualizada correctamente');
-        if (checkUserCallback) checkUserCallback(); // Actualizar avatar en la cabecera si es el usuario en sesión
-        cargarVistaConfiguracion(containerElement, checkUserCallback);
+        if (checkUserCallback) checkUserCallback(); // Actualizar avatar en la cabecera
+        cargarVistaConfiguracion(checkUserCallback);
     };
 
     selTipo?.addEventListener('change', cambiarTipoPerfil);
@@ -411,9 +252,6 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
     inputFile?.addEventListener('change', (e) => previsualizarArchivoSeleccionado(e.target));
     btnCancelar?.addEventListener('click', limpiarSeleccionFoto);
     btnGuardar?.addEventListener('click', ejecutarSubidaFoto);
-
-    // Inicializar perfil
-    cambiarTipoPerfil();
 
     // --- LÓGICA DE CAMBIO DE CONTRASEÑA ---
     const formPassword = document.getElementById('form-change-password');
@@ -456,21 +294,18 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
 
     // --- LÓGICA DE INACTIVIDAD DE SESIÓN ---
     const selectInactivity = document.getElementById('select-inactivity');
-    if (selectInactivity) {
-        selectInactivity.value = savedTimeout;
-        selectInactivity.addEventListener('change', () => {
-            const val = selectInactivity.value;
-            safeLocalStorage.setItem('inactiveTimeout', val);
-            mostrarMensaje('success', 'Preferencias de sesión actualizadas');
-            
-            // Disparar un evento personalizado para alertar a app.js del cambio inmediato
-            const event = new CustomEvent('inactiveTimeoutChanged', { detail: val });
-            window.dispatchEvent(event);
-        });
-    }
+    selectInactivity?.addEventListener('change', () => {
+        const val = selectInactivity.value;
+        safeLocalStorage.setItem('inactiveTimeout', val);
+        mostrarMensaje('success', 'Preferencias de sesión actualizadas');
+        
+        // Disparar un evento personalizado para alertar a app.js
+        const event = new CustomEvent('inactiveTimeoutChanged', { detail: val });
+        window.dispatchEvent(event);
+    });
 
     // --- LÓGICA DE CAMBIO DE TEMAS ---
-    const themeCards = container.querySelectorAll('.theme-card');
+    const themeCards = document.querySelectorAll('.theme-card');
     themeCards.forEach(card => {
         card.addEventListener('click', () => {
             themeCards.forEach(c => c.classList.remove('active'));
@@ -491,5 +326,74 @@ export async function cargarVistaConfiguracion(container, onPhotoUpdated = null)
             safeLocalStorage.setItem('theme', theme);
             mostrarMensaje('success', `Tema cambiado a: ${card.querySelector('.theme-card-name').textContent}`);
         });
+    });
+}
+
+function cambiarTipoPerfil() {
+    const selTipo = document.getElementById('perfil-tipo-usuario');
+    const selRegistro = document.getElementById('perfil-id-registro');
+    const btnCancelar = document.getElementById('btn-cancelar-foto');
+    const inputFile = document.getElementById('perfil-input-file');
+    const imgPreview = document.getElementById('perfil-foto-preview');
+    const txtTitulo = document.getElementById('perfil-foto-titulo');
+
+    const tipo = selTipo?.value;
+    if (!selRegistro) return;
+
+    const lista = tipo === 'profesor' ? _datosPerfil.profesores : _datosPerfil.alumnos;
+
+    selRegistro.innerHTML = lista.map(item => {
+        const nombre = tipo === 'profesor' ? item.profe_nombre : item.alumno_nombre;
+        const foto = tipo === 'profesor' ? item.profe_imagen_url : item.alumno_imagen_url;
+        return `<option value="${item.id}" data-foto="${foto || ''}" data-nombre="${nombre}">${nombre} (#${item.id})</option>`;
+    }).join('');
+
+    if (inputFile) inputFile.value = '';
+    if (btnCancelar) btnCancelar.style.display = 'none';
+
+    // actualizarPreviewFoto logic
+    const option = selRegistro.options[selRegistro.selectedIndex];
+    const fotoUrl = option?.getAttribute('data-foto');
+    const nombre = option?.getAttribute('data-nombre') || 'Usuario';
+
+    if (txtTitulo) txtTitulo.textContent = 'Fotografía Actual';
+
+    if (fotoUrl && fotoUrl.trim() !== '') {
+        imgPreview.src = fotoUrl;
+    } else {
+        const seed = encodeURIComponent(nombre.substring(0, 2));
+        imgPreview.src = `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=4f46e5`;
+    }
+}
+
+const runConfiguracionWithUser = async (user) => {
+    const checkUserCallback = async () => {
+        const userAvatar = document.getElementById('user-avatar');
+        if (userAvatar && user) {
+            const email = user.email;
+            const { data: profe } = await ProfesorService.getProfesorByEmail(email);
+            let fotoUrl = null;
+            if (profe) {
+                fotoUrl = profe.profe_imagen_url;
+            } else {
+                const { data: alumno } = await AlumnoService.getAlumnoImagenByEmail(email);
+                if (alumno) fotoUrl = alumno.alumno_imagen_url;
+            }
+            const fallbackUrl = getFallbackAvatarUrl(email || 'Usuario');
+            userAvatar.src = fotoUrl || fallbackUrl;
+        }
+    };
+    cargarVistaConfiguracion(checkUserCallback);
+};
+
+if (window.layoutReady) {
+    AuthService.getUser().then(res => {
+        const user = res.data?.user;
+        runConfiguracionWithUser(user);
+    });
+} else {
+    window.addEventListener('layout-ready', (e) => {
+        const user = e.detail?.user;
+        runConfiguracionWithUser(user);
     });
 }

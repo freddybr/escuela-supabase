@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programas Académicos - Escuela Digital</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../image/EscuelaIco-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../image/EscuelaIco-16x16.png">
+    <link rel="shortcut icon" href="../image/EscuelaIco.ico">
+    <link rel="apple-touch-icon" href="../image/EscuelaIco-apple.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Escuela Digital">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/app.css?v=3.4">
+</head>
+<body>
+    <div class="app-body">
+        <main id="main-content" class="app-main">
+            <!-- Header de Sección -->
+            <div class="header-seccion">
+                <div class="header-seccion-main">
+                    <span class="header-icon">
+                        <svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </span>
+                    <div class="header-seccion-text">
+                        <h2>Programas</h2>
+                        <p>Contenido de programas.</p>
+                    </div>
+                </div>
+                <div class="header-action-container">
+                    <button id="btn-nuevo-programa" class="btn-header-action" aria-label="Añadir">+</button>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="table-responsive table-programas-scroll">
+                <table class="data-table" id="tabla-programas">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Materia</th>
+                            <th>Programa</th>
+                            <th>Objetivo</th>
+                            <th>Versículo</th>
+                            <th>Estatus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-programas-body">
+                        <tr>
+                            <td colspan="6" class="loading">Consultando Programas...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Programa -->
+            <div id="modal-programa" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-programa-title">Programa</h3>
+                        <button id="modal-programa-close" class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="form-programa">
+                            <input type="hidden" id="programa-id">
+                            <div class="form-row">
+                                <label>Materia</label>
+                                <select id="programa-materia" required>
+                                    <option value="">-- Seleccionar Materia --</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>Programa (Título)</label>
+                                <input id="programa-tema" type="text" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Objetivo</label>
+                                <textarea id="programa-objetivo" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label>Versículo / Texto</label>
+                                <textarea id="programa-texto" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label>Estatus</label>
+                                <select id="programa-estatus" required>
+                                    <option value="Disponible">Disponible</option>
+                                    <option value="Elaborando">Elaborando</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="btn-cancelar-programa" class="btn-secondary">Cancelar</button>
+                        <button id="btn-borrar-programa" class="btn-danger" style="display:none;">Eliminar</button>
+                        <button id="btn-guardar-programa" class="btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="../js/layout.js"></script>
+    <script type="module" src="../js/views/programas.js"></script>
+</body>
+</html>

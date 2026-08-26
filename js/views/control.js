@@ -1,12 +1,26 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje } from '../ui.js';
 import { ControlService, ProfesorService, AsignacionService } from '../services.js';
 
-let containerElement = null;
 let todosProfesores = [];
+let modalInitialized = false;
 
-export async function cargarVistaControl(container, filtrosPrevios = null) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando Ejecución de Clases...</div>';
+const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return '';
+    const parts = fechaStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return fechaStr;
+};
+
+export async function cargarVistaControl(filtrosPrevios = null) {
+    const tableBody = document.getElementById('tabla-control-body');
+    const selectFilterAsignacion = document.getElementById('filter-asignacion');
+    const selectFilterEstatus = document.getElementById('filter-estatus');
+
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="loading">Consultando Ejecución de Clases...</td></tr>';
+    }
 
     const [resVista, resProfesores, resAsignaciones] = await Promise.all([
         ControlService.getControlesVista(),
@@ -15,17 +29,23 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     ]);
 
     if (resVista.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${resVista.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="error-msg">❌ Error: ${resVista.error.message}</td></tr>`;
+        }
         return;
     }
 
     if (resProfesores.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar profesores: ${resProfesores.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="error-msg">❌ Error al cargar profesores: ${resProfesores.error.message}</td></tr>`;
+        }
         return;
     }
 
     if (resAsignaciones.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</td></tr>`;
+        }
         return;
     }
 
@@ -33,157 +53,79 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     const vista_control = resVista.data || [];
     const listaAsignaciones = resAsignaciones.data || [];
 
-    const formatearFecha = (fechaStr) => {
-        if (!fechaStr) return '';
-        const parts = fechaStr.split('-');
-        if (parts.length === 3) {
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-        return fechaStr;
-    };
-
     const mapaFotosProfesores = new Map();
     todosProfesores.forEach(p => {
         mapaFotosProfesores.set(p.id, p.profe_imagen_url);
     });
 
+    // Rellenar select de asignación
+    if (selectFilterAsignacion) {
+        selectFilterAsignacion.innerHTML = '<option value="">Asignaciones</option>' +
+            listaAsignaciones.filter(asig => asig.asigna_estatus === 'Activa').map(asig => `<option value="${asig.asigna_id}">#${asig.asigna_id} - Prog: ${asig.programa_tema} | Grado: ${asig.grado_numero}</option>`).join('');
+    }
+
+    // Rellenar select de estatus
     const estatusUnicos = [...new Set(vista_control.map(n => n.control_estatus).filter(Boolean))].sort();
+    if (selectFilterEstatus) {
+        selectFilterEstatus.innerHTML = '<option value="">Estatus</option>' +
+            estatusUnicos.map(e => `<option value="${e}">${e}</option>`).join('');
+    }
 
-    let htmlTemplate = `
-    ${renderHeaderSeccion('control', 'Ejecución', 'Control de ejecución de clases.', `
-        <div class="header-action-container">
-            <span class="control-counter-badge">
-                <span class="counter-dot"></span>
-                <span id="control-contador-texto">Cargando clases...</span>
-            </span>
-        </div>
-    `)}
+    // Rellenar la tabla
+    if (tableBody) {
+        if (vista_control.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No hay registros de ejecución de clases.</td></tr>';
+        } else {
+            const sortedControl = [...vista_control].sort((a, b) => {
+                const gradoA = parseInt(a.grado_numero, 10) || 0;
+                const gradoB = parseInt(b.grado_numero, 10) || 0;
+                if (gradoA !== gradoB) return gradoA - gradoB;
+                return (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0);
+            });
 
-    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
-        <div style="flex: 1 1 100%; min-width: 140px;">
-            <input type="text" id="filter-search" class="form-control" placeholder="Buscar Fecha, Clase o Profesor...">
-        </div>
-        <div style="width: 320px; max-width: 100%;">
-            <select id="filter-asignacion" class="form-select">
-                <option value="">Asignaciones</option>
-                ${listaAsignaciones.filter(asig => asig.asigna_estatus === 'Activa').map(asig => `<option value="${asig.asigna_id}">#${asig.asigna_id} - Prog: ${asig.programa_tema} | Grado: ${asig.grado_numero}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-estatus" class="form-select">
-                <option value="">Estatus</option>
-                ${estatusUnicos.map(e => `<option value="${e}">${e}</option>`).join('')}
-            </select>
-        </div>
-    </div>
+            tableBody.innerHTML = sortedControl.map(n => {
+                const urlImagenBase = mapaFotosProfesores.get(n.profe_id);
+                const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
+                    ? urlImagenBase
+                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.profe_nombre || 'Profe')}&backgroundColor=4f46e5`;
 
-    <div class="table-responsive table-control-scroll">
-        <table class="data-table" id="tabla-control">
-            <thead>
-                <tr>
-                    <th>Estatus</th>    
-                    <th>Fecha</th>
-                    <th># Clase</th>
-                    <th>Clase</th>
-                    <th style="width: 90px; text-align: center;">Foto</th>
-                    <th>Profesor</th>
-                    <th>Observaciones</th>
+                return `
+                <tr 
+                    data-id="${n.control_id}"
+                    data-asigna-id="${n.asigna_id || ''}"
+                    data-fecha="${n.control_fecha || ''}" 
+                    data-grado="${n.grado_numero || ''}"
+                    data-programa="${n.programa_id || ''}" 
+                    data-clase-num="${n.clase_num || ''}"
+                    data-clase-tema="${n.clase_tema || ''}" 
+                    data-profesor="${n.profe_nombre || ''}" 
+                    data-estatus="${n.control_estatus || ''}"
+                    class="fila-control"
+                    style="cursor: pointer;"
+                >
+                    <td data-label="Estatus">
+                        <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
+                            ${n.control_estatus || 'Pendiente'}
+                        </span>
+                    </td>    
+                    <td data-label="Fecha"><strong>${formatearFecha(n.control_fecha) || 'Sin fecha'}</strong></td>
+                    <td data-label="# Clase"><span class="text-light">${n.clase_num ?? ''}</span></td>
+                    <td data-label="Clase"><span class="text-light">${n.clase_tema ?? ''}</span></td>
+                    <td data-label="Foto" style="text-align: center;">
+                        <img src="${fotoUrl}" alt="${n.profe_nombre || 'Profesor'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
+                    </td>
+                    <td data-label="Profesor"><span class="text-light">${n.profe_nombre || 'Sin asignar'}</span></td>
+                    <td data-label="Observaciones"><span class="text-light">${n.control_observaciones || ''}</span></td>                            
                 </tr>
-            </thead>
-            <tbody>
-                ${[...vista_control]
-                    .sort((a, b) => {
-                        const gradoA = parseInt(a.grado_numero, 10) || 0;
-                        const gradoB = parseInt(b.grado_numero, 10) || 0;
-                        if (gradoA !== gradoB) return gradoA - gradoB;
-                        return (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0);
-                    })
-                    .map(n => {
-                        const urlImagenBase = mapaFotosProfesores.get(n.profe_id);
-                        const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
-                            ? urlImagenBase
-                            : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.profe_nombre || 'Profe')}&backgroundColor=4f46e5`;
+                `;
+            }).join('');
+        }
+    }
 
-                        return `
-                        <tr 
-                            data-id="${n.control_id}"
-                            data-asigna-id="${n.asigna_id || ''}"
-                            data-fecha="${n.control_fecha || ''}" 
-                            data-grado="${n.grado_numero || ''}"
-                            data-programa="${n.programa_id || ''}" 
-                            data-clase-num="${n.clase_num || ''}"
-                            data-clase-tema="${n.clase_tema || ''}" 
-                            data-profesor="${n.profe_nombre || ''}" 
-                            data-estatus="${n.control_estatus || ''}"
-                            class="fila-control"
-                            style="cursor: pointer;"
-                        >
-                            <td data-label="Estatus">
-                                <span class="badge" style="background-color: ${n.control_estatus === 'Pendiente' ? '#ffc107' : n.control_estatus === 'Programada' ? '#198754' : n.control_estatus === 'Vista' ? '#dc3545' : '#6c757d'}; color: ${n.control_estatus === 'Pendiente' ? '#000000' : '#ffffff'};">
-                                    ${n.control_estatus || 'Pendiente'}
-                                </span>
-                            </td>    
-                            <td data-label="Fecha"><strong>${formatearFecha(n.control_fecha) || 'Sin fecha'}</strong></td>
-                            <td data-label="# Clase"><span class="text-light">${n.clase_num ?? ''}</span></td>
-                            <td data-label="Clase"><span class="text-light">${n.clase_tema ?? ''}</span></td>
-                            <td data-label="Foto" style="text-align: center;">
-                                <img src="${fotoUrl}" alt="${n.profe_nombre || 'Profesor'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Profe&backgroundColor=4f46e5'">
-                            </td>
-                            <td data-label="Profesor"><span class="text-light">${n.profe_nombre || 'Sin asignar'}</span></td>
-                            <td data-label="Observaciones"><span class="text-light">${n.control_observaciones || ''}</span></td>                            
-                        </tr>
-                        `;
-                    }).join('')}
-            </tbody>
-        </table>
-    </div>
-
-    <div id="modal-control" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-control-title">Editar Ejecución de Clase</h3>
-                <button id="modal-control-close" class="modal-close">✕</button>
-            </div>
-            <div class="modal-body">
-                <form id="form-control">
-                    <input type="hidden" id="control-id">
-
-                    <div class="form-row">
-                        <label>Fecha de Clase</label>
-                        <input id="control-fecha" type="date" required>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Profesor (Filtrado por Grado)</label>
-                        <select id="control-profe">
-                            <option value="">-- Seleccionar Profesor --</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Observaciones</label>
-                        <textarea id="control-observ" rows="3" placeholder="Ingresa observaciones de la clase..."></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <label>Estatus</label>
-                        <select id="control-estatus" required>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Programada">Programada</option>
-                            <option value="Vista">Vista</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button id="btn-cancelar-control" class="btn-secondary">Cancelar</button>
-                <button id="btn-guardar-control" class="btn-primary">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = htmlTemplate;
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
     const inputSearch = document.getElementById('filter-search');
     const selectAsignacion = document.getElementById('filter-asignacion');
@@ -256,7 +198,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
     selectAsignacion?.addEventListener('change', aplicarFiltrosControl);
     selectEstatus?.addEventListener('change', aplicarFiltrosControl);
 
-    // Inicializar el contador llamando a aplicarFiltrosControl
+    // Inicializar el contador
     aplicarFiltrosControl();
 
     if (filtrosPrevios) {
@@ -267,6 +209,7 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
         aplicarFiltrosControl();
     }
 
+    // Configurar clics de las filas
     document.querySelectorAll('.fila-control').forEach(row => {
         row.addEventListener('click', async () => {
             const controlId = row.getAttribute('data-id');
@@ -286,10 +229,12 @@ export async function cargarVistaControl(container, filtrosPrevios = null) {
             abrirModalControl(regControl, profesoresDelGrado, claseNum, claseTema);
         });
     });
+}
 
-    document.getElementById('modal-control-close').addEventListener('click', () => cerrarModalControl());
-    document.getElementById('btn-guardar-control').addEventListener('click', guardarControl);
-    document.getElementById('btn-cancelar-control').addEventListener('click', (e) => { e.preventDefault(); cerrarModalControl(); });
+function configurarListeners() {
+    document.getElementById('modal-control-close')?.addEventListener('click', () => cerrarModalControl());
+    document.getElementById('btn-guardar-control')?.addEventListener('click', guardarControl);
+    document.getElementById('btn-cancelar-control')?.addEventListener('click', (e) => { e.preventDefault(); cerrarModalControl(); });
 }
 
 function obtenerEstadoFiltros() {
@@ -308,6 +253,8 @@ function abrirModalControl(registro, profesoresDisponibles, claseNum = '', clase
     const selProfe = document.getElementById('control-profe');
     const txtObserv = document.getElementById('control-observ');
     const selEstatus = document.getElementById('control-estatus');
+
+    if (!modal || !titulo || !inputId || !inpFecha || !selProfe || !txtObserv || !selEstatus) return;
 
     const infoClase = claseNum ? `Clase #${claseNum}: ` : '';
     titulo.textContent = `${infoClase}${claseTema || 'Editar Clase'}`;
@@ -363,13 +310,13 @@ async function guardarControl(e) {
     mostrarMensaje('success', 'Registro de ejecución actualizado correctamente');
     cerrarModalControl();
 
-    if (containerElement) cargarVistaControl(containerElement, filtrosActuales);
+    cargarVistaControl(filtrosActuales);
 }
 
-function limpiarFormularioControl() {
-    document.getElementById('control-fecha').value = '';
-    document.getElementById('control-profe').value = '';
-    document.getElementById('control-observ').value = '';
-    document.getElementById('control-estatus').value = 'Pendiente';
-    document.getElementById('control-fecha').focus();
+if (window.layoutReady) {
+    cargarVistaControl();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaControl();
+    });
 }

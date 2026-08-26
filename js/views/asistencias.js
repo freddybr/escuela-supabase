@@ -7,12 +7,21 @@ let listaAlumnosGlobal = [];
 let listaControlGlobal = [];
 let listaAsignacionesGlobal = [];
 let alumnosAsistenciaEstado = [];
+let modalInitialized = false;
 
-export async function cargarVistaAsistencias(container) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando Registro de Asistencias...</div>';
+export async function cargarVistaAsistencias() {
+    const tableBody = document.getElementById('tabla-asistencias-body');
+    const selectFilterAlumno = document.getElementById('filter-alumno');
+    const selectFilterPrograma = document.getElementById('filter-programa-asist');
+    const selectFilterGrado = document.getElementById('filter-grado-asist');
+    const selectFilterProfesor = document.getElementById('filter-profesor');
+    const selectFilterAsistencia = document.getElementById('filter-asistencia');
+    const selectAsignacionModal = document.getElementById('asist-asignacion-id');
 
-    // Consulta de datos según el DDL exacto
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="11" class="loading">Consultando Registro de Asistencias...</td></tr>';
+    }
+
     const [resVista, resAlumnos, resControl, resClases, resAsignaciones, resProgramas, resGrados] = await Promise.all([
         AsistenciaService.getAsistenciasVista(),
         AlumnoService.getAlumnos(),
@@ -24,37 +33,35 @@ export async function cargarVistaAsistencias(container) {
     ]);
 
     if (resVista.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${resVista.error.message}</p>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" class="error-msg">❌ Error: ${resVista.error.message}</td></tr>`;
         return;
     }
 
     if (resAlumnos.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar alumnos: ${resAlumnos.error.message}</p>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" class="error-msg">❌ Error al cargar alumnos: ${resAlumnos.error.message}</td></tr>`;
         return;
     }
 
     if (resControl.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar registros de control: ${resControl.error.message}</p>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" class="error-msg">❌ Error al cargar registros de control: ${resControl.error.message}</td></tr>`;
         return;
     }
 
     if (resClases.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar clases: ${resClases.error.message}</p>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" class="error-msg">❌ Error al cargar clases: ${resClases.error.message}</td></tr>`;
         return;
     }
 
     if (resAsignaciones.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</p>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" class="error-msg">❌ Error al cargar asignaciones: ${resAsignaciones.error.message}</td></tr>`;
         return;
     }
 
-    // Mapa de Clases para obtener el tema de cada clase
     const mapaClases = new Map();
     (resClases.data || []).forEach(c => {
         mapaClases.set(c.id, c.clase_tema || 'Clase sin tema');
     });
 
-    // Mapear y ORDENAR de menor a mayor por ID (#Control)
     listaControlGlobal = (resControl.data || [])
         .map(ctrl => ({
             ...ctrl,
@@ -62,14 +69,12 @@ export async function cargarVistaAsistencias(container) {
         }))
         .sort((a, b) => Number(a.id) - Number(b.id));
 
-    // Mapas para resolver nombres de programas y grados
     const mapaProgramas = new Map();
     (resProgramas.data || []).forEach(p => {
         const nombreProg = p.programa_tema || p.prog_nombre || `Programa #${p.id}`;
         mapaProgramas.set(p.id, nombreProg);
     });
 
-    // Mapa para obtener el número de clase a partir del tema de la clase y el programa
     const mapaClaseNum = new Map();
     (resClases.data || []).forEach(c => {
         const progNombre = mapaProgramas.get(c.programa_id) || '';
@@ -122,7 +127,6 @@ export async function cargarVistaAsistencias(container) {
         return fechaStr;
     };
 
-    // Ordenar vista asistencias por fecha y luego ID
     vista_asistencias.sort((a, b) => {
         if (!a.fecha && !b.fecha) return (a.asistencia_id || 0) - (b.asistencia_id || 0);
         if (!a.fecha) return 1;
@@ -135,219 +139,104 @@ export async function cargarVistaAsistencias(container) {
         return comparacionFecha;
     });
 
-    const opcionesAsignaciones = listaAsignacionesGlobal.map(asig => {
-        return `<option value="${asig.id}">#${asig.id} - Prog: ${asig.prog_nombre} | Grado: ${asig.grado_nombre}</option>`;
-    }).join('');
+    // Rellenar select del modal
+    if (selectAsignacionModal) {
+        selectAsignacionModal.innerHTML = '<option value="">-- Seleccionar Asignación --</option>' +
+            listaAsignacionesGlobal.map(asig => `<option value="${asig.id}">#${asig.id} - Prog: ${asig.prog_nombre} | Grado: ${asig.grado_nombre}</option>`).join('');
+    }
 
-    // Filtros
+    // Rellenar filtros
     const alumnosUnicos = [...new Set(vista_asistencias.map(n => n.alumno).filter(Boolean))].sort();
     const programasUnicos = [...new Set(vista_asistencias.map(n => n.programa).filter(Boolean))].sort();
     const gradosUnicos = [...new Set(vista_asistencias.map(n => n.grado).filter(Boolean))].sort();
     const profesoresUnicos = [...new Set(vista_asistencias.map(n => n.profesor).filter(Boolean))].sort();
 
-    let htmlTemplate = `
-    ${renderHeaderSeccion('asistencias', 'Asistencias', 'Registro diario de asistencias de alumnos. Solo Asignaciones Activas', `
-        <div class="header-action-container" style="display: flex; align-items: center; gap: 12px;">
-            <span class="control-counter-badge">
-                <span class="counter-dot"></span>
-                <span id="asistencias-contador-texto">Cargando asistencias...</span>
-            </span>
-            <button id="btn-nueva-asistencia" class="btn-header-action" aria-label="Añadir">+</button>
-        </div>
-    `)}
+    if (selectFilterAlumno) {
+        selectFilterAlumno.innerHTML = '<option value="">Alumnos</option>' +
+            alumnosUnicos.map(alumno => `<option value="${alumno}">${alumno}</option>`).join('');
+    }
 
-    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
-        <div style="flex: 1 1 100%; min-width: 140px;">
-            <input type="text" id="filter-search-asist" class="form-control" placeholder="Buscar por Fecha, Programa, Clase u Observaciones...">
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-alumno" class="form-select">
-                <option value="">Alumnos</option>
-                ${alumnosUnicos.map(alumno => `<option value="${alumno}">${alumno}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-programa-asist" class="form-select">
-                <option value="">Programas</option>
-                ${programasUnicos.map(prog => `<option value="${prog}">${prog}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-grado-asist" class="form-select">
-                <option value="">Grados</option>
-                ${gradosUnicos.map(grado => `<option value="${grado}">${grado}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-profesor" class="form-select">
-                <option value="">Profesores</option>
-                ${profesoresUnicos.map(profesor => `<option value="${profesor}">${profesor}</option>`).join('')}
-            </select>
-        </div>
-        <div style="width: 180px;">
-            <select id="filter-asistencia" class="form-select">
-                <option value="">Asistencia (Todos)</option>
-                <option value="presente">Presente</option>
-                <option value="ausente">Ausente</option>
-            </select>
-        </div>
-    </div>
+    if (selectFilterPrograma) {
+        selectFilterPrograma.innerHTML = '<option value="">Programas</option>' +
+            programasUnicos.map(prog => `<option value="${prog}">${prog}</option>`).join('');
+    }
 
-    <div class="table-responsive table-asistencias-scroll">
-        <table class="data-table" id="tabla-asistencias">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th style="width: 70px; text-align: center;">Foto</th>
-                    <th>Alumno</th>
-                    <th>Profesor</th>
-                    <th>Programa</th>
-                    <th style="text-align: center;">Nº Clase</th>
-                    <th>Clase</th>
-                    <th>Grado</th>
-                    <th>Asistencia</th>
-                    <th>Evaluación</th>
-                    <th>Observaciones</th>
+    if (selectFilterGrado) {
+        selectFilterGrado.innerHTML = '<option value="">Grados</option>' +
+            gradosUnicos.map(grado => `<option value="${grado}">${grado}</option>`).join('');
+    }
+
+    if (selectFilterProfesor) {
+        selectFilterProfesor.innerHTML = '<option value="">Profesores</option>' +
+            profesoresUnicos.map(profesor => `<option value="${profesor}">${profesor}</option>`).join('');
+    }
+
+    // Rellenar la tabla
+    if (tableBody) {
+        if (vista_asistencias.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px;">No hay asistencias registradas.</td></tr>';
+        } else {
+            tableBody.innerHTML = vista_asistencias.map(n => {
+                const claveNombre = (n.alumno || '').trim().toLowerCase();
+                const urlImagenBase = mapaFotosAlumnos.get(claveNombre);
+
+                const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
+                    ? urlImagenBase
+                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.alumno || 'Alumno')}&backgroundColor=0284c7`;
+
+                const evalLower = (n.evaluacion || '').toLowerCase();
+                const evalBg = evalLower === 'excelente' ? '#0d6efd' : evalLower === 'bueno' ? '#198754' : evalLower === 'deficiente' ? '#dc3545' : '#6c757d';
+
+                const claseNum = obtenerClaseNum(n);
+
+                return `
+                <tr 
+                  data-id="${n.asistencia_id}"
+                  data-fecha="${n.fecha || ''}" 
+                  data-alumno="${n.alumno || ''}"
+                  data-profesor="${n.profesor || ''}" 
+                  data-programa="${n.programa || ''}" 
+                  data-clase="${n.clase || ''}" 
+                  data-clase-num="${claseNum || ''}"
+                  data-grado="${n.grado || ''}"
+                  data-observaciones="${n.observaciones || ''}"
+                  data-presente="${n.presente}"
+                  class="fila-asistencia"
+                  style="cursor: pointer;"
+                >
+                    <td data-label="Fecha"><strong>${formatearFecha(n.fecha) || 'Sin fecha'}</strong></td>
+                    <td data-label="Foto" style="text-align: center;">
+                        <img src="${fotoUrl}" alt="${n.alumno || 'Alumno'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Alumno&backgroundColor=0284c7'">
+                    </td>
+                    <td data-label="Alumno" class="text-bold">${n.alumno || '-'}</td>
+                    <td data-label="Profesor"><span class="text-light">${n.profesor || '-'}</span></td>
+                    <td data-label="Programa"><span class="text-light">${n.programa || '-'}</span></td>
+                    <td data-label="Nº Clase" style="text-align: center;"><strong># ${claseNum || '-'}</strong></td>
+                    <td data-label="Clase"><span class="text-light">${n.clase || '-'}</span></td>
+                    <td data-label="Grado" class="text-bold">${n.grado || '-'}</td>
+                    <td data-label="Asistencia">
+                        <span class="badge" style="background-color: ${n.presente ? '#198754' : '#dc3545'}; color: #ffffff;">
+                            ${n.presente ? 'Presente' : 'Ausente'}
+                        </span>
+                    </td>
+                    <td data-label="Evaluación">
+                        <span class="badge" style="background-color: ${evalBg}; color: #ffffff;">
+                            ${n.evaluacion ?? 'N/A'}
+                        </span>
+                    </td>
+                    <td data-label="Observaciones"><span class="text-light">${n.observaciones ?? ''}</span></td>
                 </tr>
-            </thead>
-            <tbody>
-                ${vista_asistencias.map(n => {
-                    const claveNombre = (n.alumno || '').trim().toLowerCase();
-                    const urlImagenBase = mapaFotosAlumnos.get(claveNombre);
+                `;
+            }).join('');
+        }
+    }
 
-                    const fotoUrl = urlImagenBase && urlImagenBase.trim() !== ''
-                        ? urlImagenBase
-                        : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(n.alumno || 'Alumno')}&backgroundColor=0284c7`;
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
-                    const evalLower = (n.evaluacion || '').toLowerCase();
-                    const evalBg = evalLower === 'excelente' ? '#0d6efd' : evalLower === 'bueno' ? '#198754' : evalLower === 'deficiente' ? '#dc3545' : '#6c757d';
-
-                    const claseNum = obtenerClaseNum(n);
-
-                    return `
-                    <tr 
-                      data-id="${n.asistencia_id}"
-                      data-fecha="${n.fecha || ''}" 
-                      data-alumno="${n.alumno || ''}"
-                      data-profesor="${n.profesor || ''}" 
-                      data-programa="${n.programa || ''}" 
-                      data-clase="${n.clase || ''}" 
-                      data-clase-num="${claseNum || ''}"
-                      data-grado="${n.grado || ''}"
-                      data-observaciones="${n.observaciones || ''}"
-                      data-presente="${n.presente}"
-                      class="fila-asistencia"
-                      style="cursor: pointer;"
-                    >
-                        <td data-label="Fecha"><strong>${formatearFecha(n.fecha) || 'Sin fecha'}</strong></td>
-                        <td data-label="Foto" style="text-align: center;">
-                            <img src="${fotoUrl}" alt="${n.alumno || 'Alumno'}" class="tabla-avatar" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=Alumno&backgroundColor=0284c7'">
-                        </td>
-                        <td data-label="Alumno" class="text-bold">${n.alumno || '-'}</td>
-                        <td data-label="Profesor"><span class="text-light">${n.profesor || '-'}</span></td>
-                        <td data-label="Programa"><span class="text-light">${n.programa || '-'}</span></td>
-                        <td data-label="Nº Clase" style="text-align: center;"><strong># ${claseNum || '-'}</strong></td>
-                        <td data-label="Clase"><span class="text-light">${n.clase || '-'}</span></td>
-                        <td data-label="Grado" class="text-bold">${n.grado || '-'}</td>
-                        <td data-label="Asistencia">
-                            <span class="badge" style="background-color: ${n.presente ? '#198754' : '#dc3545'}; color: #ffffff;">
-                                ${n.presente ? 'Presente' : 'Ausente'}
-                            </span>
-                        </td>
-                        <td data-label="Evaluación">
-                            <span class="badge" style="background-color: ${evalBg}; color: #ffffff;">
-                                ${n.evaluacion ?? 'N/A'}
-                            </span>
-                        </td>
-                        <td data-label="Observaciones"><span class="text-light">${n.observaciones ?? ''}</span></td>
-                    </tr>
-                    `;
-                }).join('')}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Modal CRUD para Asistencias -->
-    <div id="modal-asistencia" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-asistencia-title">Asistencia</h3>
-                <button id="modal-asistencia-close" class="modal-close">✕</button>
-            </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <form id="form-asistencia">
-                    <div class="form-row" id="container-asist-asignacion">
-                        <label>1. Asignación Activa *</label>
-                        <select id="asist-asignacion-id" required>
-                            <option value="">-- Seleccionar Asignación --</option>
-                            ${opcionesAsignaciones}
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <label>2. Registro de Control *</label>
-                        <select id="asist-control-id" required disabled>
-                            <option value="">-- Seleccione una Asignación primero --</option>
-                        </select>
-                    </div>
-                    <!-- Contenedor Individual (Edición) -->
-                    <div id="container-asist-individual" style="display:none; grid-column: span 2;">
-                        <div class="form-row">
-                            <label>3. Alumno *</label>
-                            <select id="asist-alumno-id" disabled>
-                                <option value="">-- Seleccione un Control primero --</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Estatus de Asistencia</label>
-                            <select id="asist-presente" disabled>
-                                <option value="true">Presente</option>
-                                <option value="false">Ausente</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Evaluación</label>
-                            <select id="asist-evaluacion" disabled>
-                                <option value="">-- Sin Evaluación --</option>
-                                <option value="Excelente">Excelente</option>
-                                <option value="Bueno">Bueno</option>
-                                <option value="Deficiente">Deficiente</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Observación</label>
-                            <textarea id="asist-observacion" rows="3" placeholder="Observaciones sobre la asistencia..." disabled></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Contenedor Grupal (Creación por lotes) -->
-                    <div id="container-asist-grupal" style="display:none; grid-column: span 2;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #e2e8f0; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                            <span style="font-size: 13px; font-weight: 600; color: #334155;">3. Registrar Asistencia Alumnos:</span>
-                            <div style="display: flex; gap: 8px;">
-                                <button type="button" id="btn-marcar-todos-presentes" style="font-size: 11px; padding: 4px 8px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #334155;">Todos Presente</button>
-                                <button type="button" id="btn-marcar-todos-ausentes" style="font-size: 11px; padding: 4px 8px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #334155;">Todos Ausente</button>
-                            </div>
-                        </div>
-                        <div id="asist-alumnos-list" style="max-height: 40vh; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px;">
-                            <!-- Lista dinámica de alumnos -->
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button id="btn-cancelar-asistencia" class="btn-secondary">Cancelar</button>
-                <button id="btn-borrar-asistencia" class="btn-danger" style="display:none;">Eliminar</button>
-                <button id="btn-guardar-asistencia" class="btn-primary">Guardar</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = htmlTemplate;
-
-    // Event listeners
-    document.getElementById('btn-nueva-asistencia').addEventListener('click', () => abrirModalAsistencia());
-
+    // Configurar clics de las filas
     document.querySelectorAll('.fila-asistencia').forEach(row => {
         row.addEventListener('click', async () => {
             const id = row.getAttribute('data-id');
@@ -356,48 +245,15 @@ export async function cargarVistaAsistencias(container) {
         });
     });
 
-    // Manejadores en cascada
-    document.getElementById('asist-asignacion-id').addEventListener('change', alCambiarAsignacion);
-    document.getElementById('asist-control-id').addEventListener('change', alCambiarControl);
-
-    // Botones de marcado grupal
-    document.getElementById('btn-marcar-todos-presentes').addEventListener('click', (e) => {
-        e.preventDefault();
-        alumnosAsistenciaEstado.forEach(a => { 
-            a.presente = true; 
-            if (!a.evaluacion) a.evaluacion = 'Bueno';
-        });
-        renderListaAlumnosGrupal();
-    });
-    document.getElementById('btn-marcar-todos-ausentes').addEventListener('click', (e) => {
-        e.preventDefault();
-        alumnosAsistenciaEstado.forEach(a => { 
-            a.presente = false; 
-            a.evaluacion = '';
-        });
-        renderListaAlumnosGrupal();
-    });
-
-    document.getElementById('modal-asistencia-close').addEventListener('click', () => cerrarModalAsistencia());
-    document.getElementById('btn-guardar-asistencia').addEventListener('click', guardarAsistencia);
-    document.getElementById('btn-borrar-asistencia').addEventListener('click', borrarAsistencia);
-    document.getElementById('btn-cancelar-asistencia').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsistencia(); });
-
-    // Filtros programáticos
     const inputSearch = document.getElementById('filter-search-asist');
-    const selectAlumno = document.getElementById('filter-alumno');
-    const selectPrograma = document.getElementById('filter-programa-asist');
-    const selectGrado = document.getElementById('filter-grado-asist');
-    const selectProfesor = document.getElementById('filter-profesor');
-    const selectAsistencia = document.getElementById('filter-asistencia');
 
     const aplicarFiltrosAsistencias = (event) => {
         const textoBusqueda = (inputSearch?.value || '').toLowerCase();
-        const alumnoSel = selectAlumno?.value || '';
-        const programaSel = selectPrograma?.value || '';
-        const gradoSel = selectGrado?.value || '';
-        const profesorSel = selectProfesor?.value || '';
-        const asistenciaSel = selectAsistencia?.value || '';
+        const alumnoSel = selectFilterAlumno?.value || '';
+        const programaSel = selectFilterPrograma?.value || '';
+        const gradoSel = selectFilterGrado?.value || '';
+        const profesorSel = selectFilterProfesor?.value || '';
+        const asistenciaSel = selectFilterAsistencia?.value || '';
 
         const filas = document.querySelectorAll('#tabla-asistencias tbody tr');
         const countTotal = filas.length;
@@ -459,13 +315,12 @@ export async function cargarVistaAsistencias(container) {
     };
 
     inputSearch?.addEventListener('input', aplicarFiltrosAsistencias);
-    selectAlumno?.addEventListener('change', aplicarFiltrosAsistencias);
-    selectPrograma?.addEventListener('change', aplicarFiltrosAsistencias);
-    selectGrado?.addEventListener('change', aplicarFiltrosAsistencias);
-    selectProfesor?.addEventListener('change', aplicarFiltrosAsistencias);
-    selectAsistencia?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectFilterAlumno?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectFilterPrograma?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectFilterGrado?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectFilterProfesor?.addEventListener('change', aplicarFiltrosAsistencias);
+    selectFilterAsistencia?.addEventListener('change', aplicarFiltrosAsistencias);
 
-    // Inicializar el contador al cargar la vista
     aplicarFiltrosAsistencias();
 }
 
@@ -731,7 +586,7 @@ async function guardarAsistencia(e) {
 
         mostrarMensaje('success', 'Asistencia actualizada correctamente');
         cerrarModalAsistencia();
-        if (containerElement) cargarVistaAsistencias(containerElement);
+        cargarVistaAsistencias();
 
     } else {
         // --- FLUJO GRUPAL (NUEVA ASISTENCIA MASIVA) ---
@@ -766,7 +621,7 @@ async function guardarAsistencia(e) {
             }
 
             cerrarModalAsistencia();
-            if (containerElement) cargarVistaAsistencias(containerElement);
+            cargarVistaAsistencias();
 
         } catch (err) {
             console.error('[Error Guardar Grupal] Excepción fatal:', err);
@@ -790,7 +645,7 @@ async function borrarAsistencia(e) {
     mostrarMensaje('success', 'Asistencia eliminada correctamente');
 
     cerrarModalAsistencia();
-    if (containerElement) cargarVistaAsistencias(containerElement);
+    cargarVistaAsistencias();
 }
 
 function renderListaAlumnosGrupal() {
@@ -913,4 +768,57 @@ function renderListaAlumnosGrupal() {
             }
         }
     }
+}
+
+function configurarListeners() {
+    // Abrir Modal
+    const btnNueva = document.getElementById('btn-nueva-asistencia');
+    btnNueva?.addEventListener('click', () => abrirModalAsistencia(null));
+
+    // Cerrar Modal
+    const btnCerrarIcon = document.getElementById('modal-asistencia-close');
+    btnCerrarIcon?.addEventListener('click', cerrarModalAsistencia);
+
+    const btnCancelar = document.getElementById('btn-cancelar-asistencia');
+    btnCancelar?.addEventListener('click', cerrarModalAsistencia);
+
+    // Guardar
+    const btnGuardar = document.getElementById('btn-guardar-asistencia');
+    btnGuardar?.addEventListener('click', guardarAsistencia);
+
+    // Borrar
+    const btnBorrar = document.getElementById('btn-borrar-asistencia');
+    btnBorrar?.addEventListener('click', borrarAsistencia);
+
+    // Asignación y Control
+    const selAsignacion = document.getElementById('asist-asignacion-id');
+    selAsignacion?.addEventListener('change', alCambiarAsignacion);
+
+    const selControl = document.getElementById('asist-control-id');
+    selControl?.addEventListener('change', alCambiarControl);
+
+    // Marcar Todos Presentes / Ausentes
+    const btnTodosPresentes = document.getElementById('btn-marcar-todos-presentes');
+    btnTodosPresentes?.addEventListener('click', () => {
+        alumnosAsistenciaEstado.forEach(alum => {
+            alum.presente = true;
+        });
+        renderListaAlumnosGrupal();
+    });
+
+    const btnTodosAusentes = document.getElementById('btn-marcar-todos-ausentes');
+    btnTodosAusentes?.addEventListener('click', () => {
+        alumnosAsistenciaEstado.forEach(alum => {
+            alum.presente = false;
+        });
+        renderListaAlumnosGrupal();
+    });
+}
+
+if (window.layoutReady) {
+    cargarVistaAsistencias();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaAsistencias();
+    });
 }

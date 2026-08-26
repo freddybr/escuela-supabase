@@ -154,6 +154,7 @@ body {
     height: 100vh;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
+    padding-top: 70px;
 }
 
 /* =========================================================================
@@ -168,7 +169,10 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     z-index: 100;
     box-shadow: var(--shadow-md);
     border-bottom: 1px solid #1e293b;
@@ -402,6 +406,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    text-decoration: none;
 }
 
 .menu-btn:hover {
@@ -965,14 +970,19 @@ body {
         display: none !important; /* Oculta el botón de hamburguesa en PC */
     }
     
+    .app-body {
+        padding-left: 250px;
+    }
+    
     .app-aside {
-        position: relative !important;
+        position: fixed !important;
+        top: 70px !important;
         left: 0 !important;
         width: 250px !important;
         min-width: 250px !important;
-        height: auto !important;
+        height: calc(100vh - 70px) !important;
         border-right: 1px solid #1e293b !important;
-        z-index: 10 !important;
+        z-index: 90 !important;
         background: var(--bg-aside) !important;
     }
     

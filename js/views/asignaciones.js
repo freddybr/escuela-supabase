@@ -1,11 +1,13 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje } from '../ui.js';
 import { AsignacionService, ProgramaService, GradoService, PeriodoService } from '../services.js';
 
-let containerElement = null;
+let modalInitialized = false;
 
-export async function cargarVistaAsignaciones(container) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando Asignaciones...</div>';
+export async function cargarVistaAsignaciones() {
+    const tableBody = document.getElementById('tabla-asignaciones-body');
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="loading">Consultando Asignaciones...</td></tr>';
+    }
 
     const [resVista, resProgramas, resGrados, resAnio] = await Promise.all([
         AsignacionService.getAsignacionesDetalles(),
@@ -15,7 +17,9 @@ export async function cargarVistaAsignaciones(container) {
     ]);
 
     if (resVista.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error al cargar asignaciones: ${resVista.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="error-msg">❌ Error al cargar asignaciones: ${resVista.error.message}</td></tr>`;
+        }
         return;
     }
 
@@ -28,112 +32,62 @@ export async function cargarVistaAsignaciones(container) {
     const grados = resGrados.data || [];
     const anios = resAnio.data || [];
 
-    const opcionesProgramas = programasDisponibles.map(p => 
-        `<option value="${p.id}">#${p.id} - ${p.programa_tema}</option>`
-    ).join('');
+    // Rellenar selects del modal
+    const selPrograma = document.getElementById('asigna-programa');
+    if (selPrograma) {
+        selPrograma.innerHTML = '<option value="">-- Seleccionar Programa --</option>' +
+            programasDisponibles.map(p => `<option value="${p.id}">#${p.id} - ${p.programa_tema}</option>`).join('');
+    }
 
-    const opcionesGrados = grados.map(g => 
-        `<option value="${g.id}">${g.grado_nombre || g.grado_numero}</option>`
-    ).join('');
+    const selGrado = document.getElementById('asigna-grado');
+    if (selGrado) {
+        selGrado.innerHTML = '<option value="">-- Seleccionar Grado --</option>' +
+            grados.map(g => `<option value="${g.id}">${g.grado_nombre || g.grado_numero}</option>`).join('');
+    }
 
-    const opcionesAnios = anios.map(a => 
-        `<option value="${a.id}">${a.anio_periodo}</option>`
-    ).join('');
+    const selAnio = document.getElementById('asigna-anio');
+    if (selAnio) {
+        selAnio.innerHTML = '<option value="">-- Seleccionar Periodo --</option>' +
+            anios.map(a => `<option value="${a.id}">${a.anio_periodo}</option>`).join('');
+    }
 
-    let htmlTemplate = `
-        ${renderHeaderSeccion('asignaciones', 'Asignaciones', 'Distribución de los programas entre los grados.', `<div class="header-action-container"><button id="btn-nueva-asignacion" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
+    if (tableBody) {
+        if (vistaAsignaciones.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No hay asignaciones registradas.</td></tr>';
+        } else {
+            tableBody.innerHTML = vistaAsignaciones.map(n => `
+                <tr data-id="${n.asigna_id}" class="fila-asignacion" style="cursor:pointer;">
+                    <td data-label="ID"><strong># ${n.asigna_id}</strong></td>
+                    <td data-label="# Prog" class="text-bold">${n.programa_id}</td>
+                    <td data-label="Programa" class="text-bold">${n.programa_tema || 'Sin programa'}</td>
+                    <td data-label="Grado"><span class="text-light">${n.grado_numero || 'N/A'}</span></td>
+                    <td data-label="Estatus">
+                        <span class="badge" style="background-color: ${n.asigna_estatus === 'Activa' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
+                            ${n.asigna_estatus}
+                        </span>
+                    </td>
+                    <td data-label="Periodo"><span class="text-light">${n.anio_periodo || 'N/A'}</span></td>
+                    <td data-label="Materia"><span class="text-light">${n.materia_nombre || 'N/A'}</span></td>
+                    <td data-label="# Clases"><span class="text-light">${n.total_clases ?? 0}</span></td>
+                </tr>
+            `).join('');
+        }
+    }
 
-        <div class="table-responsive table-asignaciones-scroll">
-            <table class="data-table" id="tabla-asignaciones">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th># Prog</th>
-                        <th>Programa</th>
-                        <th>Grado</th>
-                        <th>Estatus</th>
-                        <th>Periodo</th>
-                        <th>Materia</th>
-                        <th># Clases</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${vistaAsignaciones.map(n => `
-                        <tr data-id="${n.asigna_id}" class="fila-asignacion" style="cursor:pointer;">
-                            <td data-label="ID"><strong># ${n.asigna_id}</strong></td>
-                            <td data-label="# Prog" class="text-bold">${n.programa_id}</td>
-                            <td data-label="Programa" class="text-bold">${n.programa_tema || 'Sin programa'}</td>
-                            <td data-label="Grado"><span class="text-light">${n.grado_numero || 'N/A'}</span></td>
-                            <td data-label="Estatus">
-                                <span class="badge" style="background-color: ${n.asigna_estatus === 'Activa' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
-                                    ${n.asigna_estatus}
-                                </span>
-                            </td>
-                            <td data-label="Periodo"><span class="text-light">${n.anio_periodo || 'N/A'}</span></td>
-                            <td data-label="Materia"><span class="text-light">${n.materia_nombre || 'N/A'}</span></td>
-                            <td data-label="# Clases"><span class="text-light">${n.total_clases ?? 0}</span></td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
+    // Configurar botón nueva asignación
+    const btnNuevaAsignacion = document.getElementById('btn-nueva-asignacion');
+    if (btnNuevaAsignacion) {
+        if (window.usuarioEsDocente) {
+            btnNuevaAsignacion.style.display = 'none';
+        } else {
+            btnNuevaAsignacion.style.display = '';
+        }
+    }
 
-        <div id="modal-asignacion" class="modal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-asignacion-title">Asignación</h3>
-                    <button id="modal-asignacion-close" class="modal-close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <form id="form-asignacion">
-                        <input type="hidden" id="asigna-id">
-                        
-                        <div class="form-row">
-                            <label>Programa (Disponible)</label>
-                            <select id="asigna-programa" required>
-                                <option value="">-- Seleccionar Programa --</option>
-                                ${opcionesProgramas}
-                            </select>
-                        </div>
-
-                        <div class="form-row">
-                            <label>Grado</label>
-                            <select id="asigna-grado" required>
-                                <option value="">-- Seleccionar Grado --</option>
-                                ${opcionesGrados}
-                            </select>
-                        </div>
-
-                        <div class="form-row">
-                            <label>Periodo (Año)</label>
-                            <select id="asigna-anio" required>
-                                <option value="">-- Seleccionar Periodo --</option>
-                                ${opcionesAnios}
-                            </select>
-                        </div>
-
-                        <div class="form-row">
-                            <label>Estatus de Asignación</label>
-                            <select id="asigna-estatus" required>
-                                <option value="Activa">Activa</option>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Terminada">Terminada</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button id="btn-cancelar-asignacion" class="btn-secondary">Cancelar</button>
-                    <button id="btn-borrar-asignacion" class="btn-danger" style="display:none;">Eliminar</button>
-                    <button id="btn-guardar-asignacion" class="btn-primary">Guardar</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    container.innerHTML = htmlTemplate;
-
-    document.getElementById('btn-nueva-asignacion')?.addEventListener('click', () => abrirModalAsignacion());
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
     document.querySelectorAll('.fila-asignacion').forEach(row => {
         row.addEventListener('click', async () => {
@@ -144,14 +98,17 @@ export async function cargarVistaAsignaciones(container) {
             }
         });
     });
-
-    document.getElementById('modal-asignacion-close').addEventListener('click', () => cerrarModalAsignacion());
-    document.getElementById('btn-guardar-asignacion').addEventListener('click', guardarAsignacion);
-    document.getElementById('btn-borrar-asignacion').addEventListener('click', borrarAsignacion);
-    document.getElementById('btn-cancelar-asignacion').addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsignacion(); });
 }
 
-function abrirModalAsignacion(asignacion = null) {
+function configurarListeners() {
+    document.getElementById('btn-nueva-asignacion')?.addEventListener('click', () => abrirModalAsignacion());
+    document.getElementById('modal-asignacion-close')?.addEventListener('click', () => cerrarModalAsignacion());
+    document.getElementById('btn-guardar-asignacion')?.addEventListener('click', guardarAsignacion);
+    document.getElementById('btn-borrar-asignacion')?.addEventListener('click', borrarAsignacion);
+    document.getElementById('btn-cancelar-asignacion')?.addEventListener('click', (e) => { e.preventDefault(); cerrarModalAsignacion(); });
+}
+
+function abrirModalAsignacion(asigna = null) {
     const modal = document.getElementById('modal-asignacion');
     const titulo = document.getElementById('modal-asignacion-title');
     const inputId = document.getElementById('asigna-id');
@@ -161,14 +118,21 @@ function abrirModalAsignacion(asignacion = null) {
     const selEstatus = document.getElementById('asigna-estatus');
     const btnBorrar = document.getElementById('btn-borrar-asignacion');
 
-    if (asignacion) {
-        titulo.textContent = `Asignación #${asignacion.id}`;
-        inputId.value = asignacion.id;
-        selPrograma.value = asignacion.programa_id || '';
-        selGrado.value = asignacion.grado_id || '';
-        selAnio.value = asignacion.anio_id || '';
-        selEstatus.value = asignacion.asigna_estatus || 'Activa';
-        btnBorrar.style.display = 'inline-block';
+    if (!modal || !titulo || !inputId || !selPrograma || !selGrado || !selAnio || !selEstatus || !btnBorrar) return;
+
+    if (asigna) {
+        titulo.textContent = `Asignación #${asigna.id}`;
+        inputId.value = asigna.id;
+        selPrograma.value = asigna.programa_id || '';
+        selGrado.value = asigna.grado_id || '';
+        selAnio.value = asigna.anio_id || '';
+        selEstatus.value = asigna.asigna_estatus || 'Activa';
+        
+        if (window.usuarioEsDocente) {
+            btnBorrar.style.display = 'none';
+        } else {
+            btnBorrar.style.display = '';
+        }
     } else {
         titulo.textContent = 'Nueva Asignación';
         inputId.value = '';
@@ -216,7 +180,7 @@ async function guardarAsignacion(e) {
 
     mostrarMensaje('success', `Asignación ${id ? 'actualizada' : 'creada'} correctamente`);
     cerrarModalAsignacion();
-    if (containerElement) cargarVistaAsignaciones(containerElement);
+    cargarVistaAsignaciones();
 }
 
 async function borrarAsignacion(e) {
@@ -234,14 +198,13 @@ async function borrarAsignacion(e) {
 
     mostrarMensaje('success', 'Asignación eliminada correctamente');
     cerrarModalAsignacion();
-    if (containerElement) cargarVistaAsignaciones(containerElement);
+    cargarVistaAsignaciones();
 }
 
-function limpiarFormularioAsignacion() {
-    document.getElementById('asigna-id').value = '';
-    document.getElementById('asigna-programa').value = '';
-    document.getElementById('asigna-grado').value = '';
-    document.getElementById('asigna-anio').value = '';
-    document.getElementById('asigna-estatus').value = 'Activa';
-    document.getElementById('asigna-programa').focus();
+if (window.layoutReady) {
+    cargarVistaAsignaciones();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaAsignaciones();
+    });
 }

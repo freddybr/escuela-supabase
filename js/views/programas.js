@@ -1,11 +1,13 @@
-import { renderHeaderSeccion, mostrarMensaje } from '../ui.js';
+import { mostrarMensaje } from '../ui.js';
 import { ProgramaService, MateriaService } from '../services.js';
 
-let containerElement = null;
+let modalInitialized = false;
 
-export async function cargarVistaProgramas(container) {
-    containerElement = container;
-    container.innerHTML = '<div class="loading">Consultando Programas...</div>';
+export async function cargarVistaProgramas() {
+    const tableBody = document.getElementById('tabla-programas-body');
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="loading">Consultando Programas...</td></tr>';
+    }
 
     const [resProgramas, resMaterias] = await Promise.all([
         ProgramaService.getProgramas(),
@@ -13,117 +15,84 @@ export async function cargarVistaProgramas(container) {
     ]);
 
     if (resProgramas.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error: ${resProgramas.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="error-msg">❌ Error: ${resProgramas.error.message}</td></tr>`;
+        }
         return;
     }
 
     if (resMaterias.error) {
-        container.innerHTML = `<p class="error-msg">❌ Error (materias): ${resMaterias.error.message}</p>`;
+        if (tableBody) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="error-msg">❌ Error (materias): ${resMaterias.error.message}</td></tr>`;
+        }
         return;
     }
 
     const programas = resProgramas.data || [];
     const materias = resMaterias.data || [];
     const materiasById = new Map(materias.map(m => [String(m.id), m.materia_nombre]));
-    const opcionesMaterias = materias.map(m => `<option value="${m.id}">${m.materia_nombre}</option>`).join('');
 
-    let htmlTemplate = `
-        ${renderHeaderSeccion('programas', 'Programas', 'Contenido de programas.', `<div class="header-action-container"><button id="btn-nuevo-programa" class="btn-header-action" aria-label="Añadir">+</button></div>`)}
-        <div class="table-responsive table-programas-scroll">
-            <table class="data-table" id="tabla-programas">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Materia</th>
-                        <th>Programa</th>
-                        <th>Objetivo</th>
-                        <th>Versículo</th>
-                        <th>Estatus</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${programas.map(p => {
-                        const nombreMateria = materiasById.get(String(p.materia_id)) || (p.materia_id ? `#${p.materia_id}` : 'Sin materia');
-                        return `
-                        <tr data-id="${p.id}" class="fila-programa" style="cursor: pointer;">
-                            <td data-label="ID"><strong># ${p.id}</strong></td>
-                            <td data-label="Materia" class="text-bold">${nombreMateria}</td>
-                            <td data-label="Programa" class="text-bold">${p.programa_tema || '-'}</td>
-                            <td data-label="Objetivo"><span class="text-light">${p.programa_objetivo || '-'}</span></td>
-                            <td data-label="Versículo"><span class="text-light">${p.programa_texto || '-'}</span></td>
-                            <td data-label="Estatus">
-                                <span class="badge" style="background-color: ${p.programa_estatus === 'Disponible' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
-                                    ${p.programa_estatus || '-'}
-                                </span>
-                            </td>
-                        </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
+    // Rellenar select del modal
+    const selMateria = document.getElementById('programa-materia');
+    if (selMateria) {
+        selMateria.innerHTML = '<option value="">-- Seleccionar Materia --</option>' +
+            materias.map(m => `<option value="${m.id}">${m.materia_nombre}</option>`).join('');
+    }
 
-        <div id="modal-programa" class="modal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-programa-title">Programa</h3>
-                    <button id="modal-programa-close" class="modal-close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <form id="form-programa">
-                        <input type="hidden" id="programa-id">
-                        <div class="form-row">
-                            <label>Materia</label>
-                            <select id="programa-materia" required>
-                                <option value="">-- Seleccionar Materia --</option>
-                                ${opcionesMaterias}
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label>Programa (Título)</label>
-                            <input id="programa-tema" type="text" required>
-                        </div>
-                        <div class="form-row">
-                            <label>Objetivo</label>
-                            <textarea id="programa-objetivo" rows="3"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <label>Versículo / Texto</label>
-                            <textarea id="programa-texto" rows="3"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <label>Estatus</label>
-                            <select id="programa-estatus" required>
-                                <option value="Disponible">Disponible</option>
-                                <option value="Elaborando">Elaborando</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button id="btn-cancelar-programa" class="btn-secondary">Cancelar</button>
-                    <button id="btn-borrar-programa" class="btn-danger" style="display:none;">Eliminar</button>
-                    <button id="btn-guardar-programa" class="btn-primary">Guardar</button>
-                </div>
-            </div>
-        </div>
-    `;
-    container.innerHTML = htmlTemplate;
+    if (tableBody) {
+        if (programas.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No hay programas registrados.</td></tr>';
+        } else {
+            tableBody.innerHTML = programas.map(p => {
+                const nombreMateria = materiasById.get(String(p.materia_id)) || (p.materia_id ? `#${p.materia_id}` : 'Sin materia');
+                return `
+                <tr data-id="${p.id}" class="fila-programa" style="cursor: pointer;">
+                    <td data-label="ID"><strong># ${p.id}</strong></td>
+                    <td data-label="Materia" class="text-bold">${nombreMateria}</td>
+                    <td data-label="Programa" class="text-bold">${p.programa_tema || '-'}</td>
+                    <td data-label="Objetivo"><span class="text-light">${p.programa_objetivo || '-'}</span></td>
+                    <td data-label="Versículo"><span class="text-light">${p.programa_texto || '-'}</span></td>
+                    <td data-label="Estatus">
+                        <span class="badge" style="background-color: ${p.programa_estatus === 'Disponible' ? '#c7f9cc' : '#ffe3e0'}; color: #000;">
+                            ${p.programa_estatus || '-'}
+                        </span>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+    }
 
-    document.getElementById('btn-nuevo-programa')?.addEventListener('click', () => abrirModalPrograma());
+    // Configurar botón nuevo programa
+    const btnNuevoPrograma = document.getElementById('btn-nuevo-programa');
+    if (btnNuevoPrograma) {
+        if (window.usuarioEsDocente) {
+            btnNuevoPrograma.style.display = 'none';
+        } else {
+            btnNuevoPrograma.style.display = '';
+        }
+    }
+
+    if (!modalInitialized) {
+        configurarListeners();
+        modalInitialized = true;
+    }
 
     document.querySelectorAll('.fila-programa').forEach(row => {
         row.addEventListener('click', async () => {
             const id = row.getAttribute('data-id');
-            const { data: prog } = await ProgramaService.getPrograma(id);
-            if (prog) abrirModalPrograma(prog);
+            const { data: p } = await ProgramaService.getPrograma(id);
+            if (p) abrirModalPrograma(p);
         });
     });
+}
 
-    document.getElementById('modal-programa-close').addEventListener('click', () => cerrarModalPrograma());
-    document.getElementById('btn-guardar-programa').addEventListener('click', guardarPrograma);
-    document.getElementById('btn-borrar-programa').addEventListener('click', borrarPrograma);
-    document.getElementById('btn-cancelar-programa').addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalPrograma(); });
+function configurarListeners() {
+    document.getElementById('btn-nuevo-programa')?.addEventListener('click', () => abrirModalPrograma());
+    document.getElementById('modal-programa-close')?.addEventListener('click', cerrarModalPrograma);
+    document.getElementById('btn-guardar-programa')?.addEventListener('click', guardarPrograma);
+    document.getElementById('btn-borrar-programa')?.addEventListener('click', borrarPrograma);
+    document.getElementById('btn-cancelar-programa')?.addEventListener('click', (ev) => { ev.preventDefault(); cerrarModalPrograma(); });
 }
 
 function abrirModalPrograma(programa = null) {
@@ -131,28 +100,35 @@ function abrirModalPrograma(programa = null) {
     const titulo = document.getElementById('modal-programa-title');
     const inputId = document.getElementById('programa-id');
     const selMateria = document.getElementById('programa-materia');
-    const inpTema = document.getElementById('programa-tema');
-    const inpObjetivo = document.getElementById('programa-objetivo');
-    const inpTexto = document.getElementById('programa-texto');
+    const inputTema = document.getElementById('programa-tema');
+    const inputObjetivo = document.getElementById('programa-objetivo');
+    const inputTexto = document.getElementById('programa-texto');
     const selEstatus = document.getElementById('programa-estatus');
     const btnBorrar = document.getElementById('btn-borrar-programa');
+
+    if (!modal || !titulo || !inputId || !selMateria || !inputTema || !inputObjetivo || !inputTexto || !selEstatus || !btnBorrar) return;
 
     if (programa) {
         titulo.textContent = `Programa #${programa.id}`;
         inputId.value = programa.id;
         selMateria.value = programa.materia_id || '';
-        inpTema.value = programa.programa_tema || '';
-        inpObjetivo.value = programa.programa_objetivo || '';
-        inpTexto.value = programa.programa_texto || '';
+        inputTema.value = programa.programa_tema || '';
+        inputObjetivo.value = programa.programa_objetivo || '';
+        inputTexto.value = programa.programa_texto || '';
         selEstatus.value = programa.programa_estatus || 'Disponible';
-        btnBorrar.style.display = '';
+        
+        if (window.usuarioEsDocente) {
+            btnBorrar.style.display = 'none';
+        } else {
+            btnBorrar.style.display = '';
+        }
     } else {
         titulo.textContent = 'Nuevo Programa';
         inputId.value = '';
         selMateria.value = '';
-        inpTema.value = '';
-        inpObjetivo.value = '';
-        inpTexto.value = '';
+        inputTema.value = '';
+        inputObjetivo.value = '';
+        inputTexto.value = '';
         selEstatus.value = 'Disponible';
         btnBorrar.style.display = 'none';
     }
@@ -167,50 +143,59 @@ function cerrarModalPrograma() {
 
 async function guardarPrograma(e) {
     e.preventDefault();
+
     const id = document.getElementById('programa-id').value;
     const materia_id = document.getElementById('programa-materia').value;
-    const tema = document.getElementById('programa-tema').value.trim();
-    const objetivo = document.getElementById('programa-objetivo').value.trim();
-    const texto = document.getElementById('programa-texto').value.trim();
-    const estatus = document.getElementById('programa-estatus').value;
+    const programa_tema = document.getElementById('programa-tema').value.trim();
+    const programa_objetivo = document.getElementById('programa-objetivo').value.trim();
+    const programa_texto = document.getElementById('programa-texto').value.trim();
+    const programa_estatus = document.getElementById('programa-estatus').value;
 
     if (!materia_id) { mostrarMensaje('error', 'Seleccione una materia'); return; }
-    if (!tema) { mostrarMensaje('error', 'El título del programa es obligatorio'); return; }
-    if (!['Disponible','Elaborando'].includes(estatus)) { mostrarMensaje('error', 'Estatus inválido'); return; }
+    if (!programa_tema) { mostrarMensaje('error', 'El título de programa es requerido'); return; }
 
-    const payload = { materia_id: materia_id, programa_tema: tema, programa_objetivo: objetivo, programa_texto: texto, programa_estatus: estatus };
+    const payload = {
+        materia_id: parseInt(materia_id, 10),
+        programa_tema: programa_tema,
+        programa_objetivo: programa_objetivo || null,
+        programa_texto: programa_texto || null,
+        programa_estatus: programa_estatus
+    };
+
     const { error } = await ProgramaService.savePrograma(id, payload);
 
     if (error) {
-        mostrarMensaje('error', `Error al ${id ? 'actualizar' : 'crear'} programa: ` + error.message);
+        mostrarMensaje('error', `Error al ${id ? 'actualizar' : 'crear'} el programa: ` + error.message);
         return;
     }
 
     mostrarMensaje('success', `Programa ${id ? 'actualizado' : 'creado'} correctamente`);
     cerrarModalPrograma();
-    if (containerElement) cargarVistaProgramas(containerElement);
+    cargarVistaProgramas();
 }
 
 async function borrarPrograma(e) {
     e.preventDefault();
     const id = document.getElementById('programa-id').value;
     if (!id) return;
-    if (!confirm('¿Eliminar este programa? Esta acción no se puede deshacer.')) return;
+
+    if (!confirm(`¿Estás seguro de eliminar el programa #${id}? Esta acción no se puede deshacer.`)) return;
 
     const { error } = await ProgramaService.deletePrograma(id);
-    if (error) { mostrarMensaje('error', 'Error al eliminar programa: ' + error.message); return; }
-    mostrarMensaje('success', 'Programa eliminado correctamente');
+    if (error) { 
+        mostrarMensaje('error', 'Error al eliminar programa: ' + error.message); 
+        return; 
+    }
 
+    mostrarMensaje('success', 'Programa eliminado correctamente');
     cerrarModalPrograma();
-    if (containerElement) cargarVistaProgramas(containerElement);
+    cargarVistaProgramas();
 }
 
-function limpiarFormularioPrograma() {
-    document.getElementById('programa-id').value = '';
-    document.getElementById('programa-materia').value = '';
-    document.getElementById('programa-tema').value = '';
-    document.getElementById('programa-objetivo').value = '';
-    document.getElementById('programa-texto').value = '';
-    document.getElementById('programa-estatus').value = 'Disponible';
-    document.getElementById('programa-materia').focus();
+if (window.layoutReady) {
+    cargarVistaProgramas();
+} else {
+    window.addEventListener('layout-ready', () => {
+        cargarVistaProgramas();
+    });
 }

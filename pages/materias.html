@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materias - Escuela Digital</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../image/EscuelaIco-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../image/EscuelaIco-16x16.png">
+    <link rel="shortcut icon" href="../image/EscuelaIco.ico">
+    <link rel="apple-touch-icon" href="../image/EscuelaIco-apple.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Escuela Digital">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/app.css?v=3.4">
+</head>
+<body>
+    <div class="app-body">
+        <main id="main-content" class="app-main">
+            <!-- Header de Sección -->
+            <div class="header-seccion">
+                <div class="header-seccion-main">
+                    <span class="header-icon">
+                        <svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </span>
+                    <div class="header-seccion-text">
+                        <h2>Materias</h2>
+                        <p>Disciplinas académicas del diseño curricular.</p>
+                    </div>
+                </div>
+                <div class="header-action-container">
+                    <button id="btn-nueva-materia" class="btn-header-action" aria-label="Añadir">+</button>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="table-responsive table-materias-scroll">
+                <table class="data-table" id="tabla-materias">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Descripción Académica</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-materias-body">
+                        <tr>
+                            <td colspan="3" class="loading">Consultando materias...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal de Formulario -->
+            <div id="modal-materia" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-title">Materia</h3>
+                        <button id="modal-close" class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="form-materia">
+                            <input type="hidden" id="materia-id">
+                            <div class="form-row">
+                                <label>Nombre</label>
+                                <input id="materia-nombre" type="text" required>
+                            </div>
+                            <div class="form-row">
+                                <label>Descripción</label>
+                                <textarea id="materia-descripcion" rows="4"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="btn-cancelar-materia" class="btn-secondary">Cancelar</button>
+                        <button id="btn-borrar-materia" class="btn-danger" style="display:none;">Eliminar</button>
+                        <button id="btn-guardar-materia" class="btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="../js/layout.js"></script>
+    <script type="module" src="../js/views/materias.js"></script>
+</body>
+</html>
+

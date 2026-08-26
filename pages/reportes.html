@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Reportes - Escuela Digital</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../image/EscuelaIco-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../image/EscuelaIco-16x16.png">
+    <link rel="shortcut icon" href="../image/EscuelaIco.ico">
+    <link rel="apple-touch-icon" href="../image/EscuelaIco-apple.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Escuela Digital">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/app.css?v=3.4">
+</head>
+<body>
+    <div class="app-body">
+        <main id="main-content" class="app-main">
+            <!-- Contenedor de Acceso Denegado (oculto por defecto) -->
+            <div id="reports-denied-container" class="reports-error-container" style="display: none; padding: 40px; text-align: center; color: #dc3545; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); margin: 20px;">
+                <svg style="width: 64px; height: 64px; margin-bottom: 20px; color: #dc3545;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 10px;">Acceso Denegado</h3>
+                <p style="color: var(--text-light);">No tienes los permisos necesarios para visualizar el módulo de reportes.</p>
+            </div>
+
+            <!-- Contenedor Principal de Reportes -->
+            <div id="reports-main-layout" class="reportes-layout" style="display: none;">
+                <!-- Header de Sección -->
+                <div class="header-seccion">
+                    <div class="header-seccion-main">
+                        <span class="header-icon">
+                            <svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </span>
+                        <div class="header-seccion-text">
+                            <h2>Módulo de Reportes</h2>
+                            <p>Visualice y exporte estadísticas académicas y de asistencias.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestañas de Selección de Reporte -->
+                <div class="report-tabs">
+                    <button class="report-tab-btn active" data-target="tab-alumno">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Asistencia Individual
+                    </button>
+                    <button class="report-tab-btn" data-target="tab-grado">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Asistencia de Grado
+                    </button>
+                    <button class="report-tab-btn" data-target="tab-avance">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Avance Programático (Clases)
+                    </button>
+                </div>
+
+                <!-- CONTENIDOS DE LAS PESTAÑAS -->
+                
+                <!-- PESTAÑA 1: REPORTE INDIVIDUAL -->
+                <div id="tab-alumno" class="report-tab-content active">
+                    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div style="width: 220px;">
+                            <select id="rep-alumno-grado" class="form-select">
+                                <option value="">-- Seleccionar Grado --</option>
+                            </select>
+                        </div>
+                        <div style="width: 280px;">
+                            <select id="rep-alumno-select" class="form-select" disabled>
+                                <option value="">-- Seleccione un Grado primero --</option>
+                            </select>
+                        </div>
+                        <button id="btn-print-alumno" class="btn-primary" style="margin-left: auto; display: none;">
+                            🖨️ Imprimir / PDF
+                        </button>
+                    </div>
+                    
+                    <div id="result-alumno-container" style="display: none;">
+                        <!-- Métricas -->
+                        <div class="metrics-row">
+                            <div class="metric-box">
+                                <h4>Porcentaje de Asistencia</h4>
+                                <div class="metric-number" id="m-alumno-porcentaje">0%</div>
+                                <div class="attendance-progress-container">
+                                    <div class="attendance-progress-bar">
+                                        <div id="m-alumno-progress-fill" class="attendance-progress-fill" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Clases Registradas</h4>
+                                <div class="metric-number" id="m-alumno-totales">0</div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Presentes</h4>
+                                <div class="metric-number" id="m-alumno-presentes" style="color: var(--success);">0</div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Faltas (Ausentes)</h4>
+                                <div class="metric-number" id="m-alumno-inasistencias" style="color: var(--danger);">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de Detalle -->
+                        <div class="table-responsive table-rep-alumno-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Programa</th>
+                                        <th>Clase</th>
+                                        <th>Estatus Asistencia</th>
+                                        <th>Evaluación</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body-alumno"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="empty-alumno-msg" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                        Por favor, seleccione un Grado y un Alumno para generar el reporte de asistencia individual.
+                    </div>
+                </div>
+
+                <!-- PESTAÑA 2: REPORTE DE GRADO -->
+                <div id="tab-grado" class="report-tab-content">
+                    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div style="width: 220px;">
+                            <select id="rep-grado-select" class="form-select">
+                                <option value="">-- Seleccionar Grado --</option>
+                            </select>
+                        </div>
+                        <button id="btn-print-grado" class="btn-primary" style="margin-left: auto; display: none;">
+                            🖨️ Imprimir / PDF
+                        </button>
+                    </div>
+
+                    <div id="result-grado-container" style="display: none;">
+                        <!-- Métricas -->
+                        <div class="metrics-row">
+                            <div class="metric-box">
+                                <h4>Promedio Asistencia del Grado</h4>
+                                <div class="metric-number" id="m-grado-promedio">0%</div>
+                                <div class="attendance-progress-container">
+                                    <div class="attendance-progress-bar">
+                                        <div id="m-grado-progress-fill" class="attendance-progress-fill" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Estudiantes Registrados</h4>
+                                <div class="metric-number" id="m-grado-alumnos">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="table-responsive table-rep-grado-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Alumno</th>
+                                        <th>Correo</th>
+                                        <th>Clases Evaluadas</th>
+                                        <th>Asistencias</th>
+                                        <th>Inasistencias</th>
+                                        <th>% Asistencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body-grado"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="empty-grado-msg" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                        Por favor, seleccione un Grado para generar el reporte de asistencia general.
+                    </div>
+                </div>
+
+                <!-- PESTAÑA 3: REPORTE DE AVANCE PROGRAMÁTICO -->
+                <div id="tab-avance" class="report-tab-content">
+                    <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div style="width: 380px;">
+                            <select id="rep-avance-asignacion" class="form-select">
+                                <option value="">-- Seleccionar Asignación Escolar --</option>
+                            </select>
+                        </div>
+                        <button id="btn-print-avance" class="btn-primary" style="margin-left: auto; display: none;">
+                            🖨️ Imprimir / PDF
+                        </button>
+                    </div>
+
+                    <div id="result-avance-container" style="display: none;">
+                        <!-- Métricas -->
+                        <div class="metrics-row">
+                            <div class="metric-box">
+                                <h4>Tasa de Avance Programático</h4>
+                                <div class="metric-number" id="m-avance-porcentaje">0%</div>
+                                <div class="attendance-progress-container">
+                                    <div class="attendance-progress-bar">
+                                        <div id="m-avance-progress-fill" class="attendance-progress-fill" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Clases Planificadas</h4>
+                                <div class="metric-number" id="m-avance-totales">0</div>
+                            </div>
+                            <div class="metric-box">
+                                <h4>Clases Dictadas (Vistas)</h4>
+                                <div class="metric-number" id="m-avance-ejecutadas" style="color: var(--success);">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="table-responsive table-rep-avance-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th># Clase</th>
+                                        <th>Tema de Clase</th>
+                                        <th>Fecha Ejecución</th>
+                                        <th>Docente</th>
+                                        <th>Estatus</th>
+                                        <th>Observaciones de Clase</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body-avance"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="empty-avance-msg" class="text-center" style="padding: 40px; color: var(--text-muted);">
+                        Por favor, seleccione una Asignación para visualizar el avance programático de clases.
+                    </div>
+                </div>
+
+                <!-- CONTENEDORES INVISIBLES EXCLUSIVOS DE IMPRESIÓN A4 -->
+                <div class="print-only-header">
+                    <div class="print-header-main">
+                        <div class="print-school-info">
+                            <h2 id="print-school-title">ESCUELA DIGITAL</h2>
+                            <p>Reporte Oficial de Rendimiento y Seguimiento Académico</p>
+                        </div>
+                        <div class="print-report-meta">
+                            <p><strong>Fecha Emisión:</strong> <span id="print-emission-date"></span></p>
+                            <p id="print-report-subtitle"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="print-only-footer">
+                    <div class="signature-grid">
+                        <div>
+                            <div class="signature-line">Docente de Grado</div>
+                        </div>
+                        <div>
+                            <div class="signature-line">Coordinador / Dirección</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="reports-loading" class="loading">Cargando Módulo de Reportes...</div>
+        </main>
+    </div>
+
+    <script type="module" src="../js/layout.js"></script>
+    <script type="module" src="../js/views/reportes.js"></script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencias - Escuela Digital</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../image/EscuelaIco-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../image/EscuelaIco-16x16.png">
+    <link rel="shortcut icon" href="../image/EscuelaIco.ico">
+    <link rel="apple-touch-icon" href="../image/EscuelaIco-apple.png">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Escuela Digital">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/app.css?v=3.4">
+</head>
+<body>
+    <div class="app-body">
+        <main id="main-content" class="app-main">
+            <!-- Header de Sección -->
+            <div class="header-seccion">
+                <div class="header-seccion-main">
+                    <span class="header-icon">
+                        <svg class="header-icon-svg" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </span>
+                    <div class="header-seccion-text">
+                        <h2>Asistencias</h2>
+                        <p>Registro diario de asistencias de alumnos. Solo Asignaciones Activas</p>
+                    </div>
+                </div>
+                <div class="header-action-container" style="display: flex; align-items: center; gap: 12px;">
+                    <span class="control-counter-badge">
+                        <span class="counter-dot"></span>
+                        <span id="asistencias-contador-texto">Cargando asistencias...</span>
+                    </span>
+                    <button id="btn-nueva-asistencia" class="btn-header-action" aria-label="Añadir">+</button>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start;">
+                <div style="flex: 1 1 100%; min-width: 140px;">
+                    <input type="text" id="filter-search-asist" class="form-control" placeholder="Buscar por Fecha, Programa, Clase u Observaciones...">
+                </div>
+                <div style="width: 180px;">
+                    <select id="filter-alumno" class="form-select">
+                        <option value="">Alumnos</option>
+                    </select>
+                </div>
+                <div style="width: 180px;">
+                    <select id="filter-programa-asist" class="form-select">
+                        <option value="">Programas</option>
+                    </select>
+                </div>
+                <div style="width: 180px;">
+                    <select id="filter-grado-asist" class="form-select">
+                        <option value="">Grados</option>
+                    </select>
+                </div>
+                <div style="width: 180px;">
+                    <select id="filter-profesor" class="form-select">
+                        <option value="">Profesores</option>
+                    </select>
+                </div>
+                <div style="width: 180px;">
+                    <select id="filter-asistencia" class="form-select">
+                        <option value="">Asistencia (Todos)</option>
+                        <option value="presente">Presente</option>
+                        <option value="ausente">Ausente</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla de Datos -->
+            <div class="table-responsive table-asistencias-scroll">
+                <table class="data-table" id="tabla-asistencias">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th style="width: 70px; text-align: center;">Foto</th>
+                            <th>Alumno</th>
+                            <th>Profesor</th>
+                            <th>Programa</th>
+                            <th style="text-align: center;">Nº Clase</th>
+                            <th>Clase</th>
+                            <th>Grado</th>
+                            <th>Asistencia</th>
+                            <th>Evaluación</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-asistencias-body">
+                        <tr>
+                            <td colspan="11" class="loading">Consultando registros de asistencias...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal CRUD para Asistencias -->
+            <div id="modal-asistencia" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-asistencia-title">Asistencia</h3>
+                        <button id="modal-asistencia-close" class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <form id="form-asistencia">
+                            <div class="form-row" id="container-asist-asignacion">
+                                <label>1. Asignación Activa *</label>
+                                <select id="asist-asignacion-id" required>
+                                    <option value="">-- Seleccionar Asignación --</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label>2. Registro de Control *</label>
+                                <select id="asist-control-id" required disabled>
+                                    <option value="">-- Seleccione una Asignación primero --</option>
+                                </select>
+                            </div>
+                            <!-- Contenedor Individual (Edición) -->
+                            <div id="container-asist-individual" style="display:none; grid-column: span 2;">
+                                <div class="form-row">
+                                    <label>3. Alumno *</label>
+                                    <select id="asist-alumno-id" disabled>
+                                        <option value="">-- Seleccione un Control primero --</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Estatus de Asistencia</label>
+                                    <select id="asist-presente" disabled>
+                                        <option value="true">Presente</option>
+                                        <option value="false">Ausente</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Evaluación</label>
+                                    <select id="asist-evaluacion" disabled>
+                                        <option value="">-- Sin Evaluación --</option>
+                                        <option value="Excelente">Excelente</option>
+                                        <option value="Bueno">Bueno</option>
+                                        <option value="Deficiente">Deficiente</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Observación</label>
+                                    <textarea id="asist-observacion" rows="3" placeholder="Observaciones sobre la asistencia..." disabled></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Contenedor Grupal (Creación por lotes) -->
+                            <div id="container-asist-grupal" style="display:none; grid-column: span 2;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #e2e8f0; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                    <span style="font-size: 13px; font-weight: 600; color: #334155;">3. Registrar Asistencia Alumnos:</span>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button type="button" id="btn-marcar-todos-presentes" style="font-size: 11px; padding: 4px 8px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #334155;">Todos Presente</button>
+                                        <button type="button" id="btn-marcar-todos-ausentes" style="font-size: 11px; padding: 4px 8px; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #334155;">Todos Ausente</button>
+                                    </div>
+                                </div>
+                                <div id="asist-alumnos-list" style="max-height: 40vh; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px;">
+                                    <!-- Lista dinámica de alumnos -->
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="btn-cancelar-asistencia" class="btn-secondary">Cancelar</button>
+                        <button id="btn-borrar-asistencia" class="btn-danger" style="display:none;">Eliminar</button>
+                        <button id="btn-guardar-asistencia" class="btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="../js/layout.js"></script>
+    <script type="module" src="../js/views/asistencias.js"></script>
+</body>
+</html>
