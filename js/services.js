@@ -152,7 +152,7 @@ export const ClaseService = {
             .select('id, clase_num, clase_tema, clase_objetivo, clase_texto, programas(programa_tema), programa_id'));
     },
     async getClasesTemaYPrograma() {
-        return await cacheRead('cache_clases_tema_programa', () => supabase.from('clases').select('id, clase_tema, programa_id'));
+        return await cacheRead('cache_clases_tema_programa', () => supabase.from('clases').select('id, clase_num, clase_tema, programa_id'));
     }
 };
 

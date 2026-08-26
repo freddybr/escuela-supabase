@@ -907,14 +907,14 @@ body {
         width: 100%;
     }
  
-    /* Asistencias Table (10 Columnas) */
+    /* Asistencias Table (11 Columnas) */
     .table-asistencias-scroll .data-table {
-        min-width: 1450px;
+        min-width: 1600px;
     }
     .table-asistencias-scroll .data-table thead tr,
     .table-asistencias-scroll .data-table tbody tr {
         display: grid;
-        grid-template-columns: 110px 70px 180px 180px 220px 220px 120px 110px 110px 1fr;
+        grid-template-columns: 110px 70px 180px 180px 200px 75px 330px 120px 110px 110px 1fr;
         width: 100%;
     }
 

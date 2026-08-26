@@ -69,6 +69,28 @@ export async function cargarVistaAsistencias(container) {
         mapaProgramas.set(p.id, nombreProg);
     });
 
+    // Mapa para obtener el número de clase a partir del tema de la clase y el programa
+    const mapaClaseNum = new Map();
+    (resClases.data || []).forEach(c => {
+        const progNombre = mapaProgramas.get(c.programa_id) || '';
+        const claveCompuesta = `${progNombre}_${c.clase_tema || ''}`.trim().toLowerCase();
+        mapaClaseNum.set(claveCompuesta, c.clase_num || '');
+
+        const claveSimple = (c.clase_tema || '').trim().toLowerCase();
+        if (!mapaClaseNum.has(claveSimple)) {
+            mapaClaseNum.set(claveSimple, c.clase_num || '');
+        }
+    });
+
+    const obtenerClaseNum = (n) => {
+        const claveCompuesta = `${n.programa || ''}_${n.clase || ''}`.trim().toLowerCase();
+        if (mapaClaseNum.has(claveCompuesta)) {
+            return mapaClaseNum.get(claveCompuesta);
+        }
+        const claveSimple = (n.clase || '').trim().toLowerCase();
+        return mapaClaseNum.get(claveSimple) || '';
+    };
+
     const mapaGrados = new Map();
     (resGrados.data || []).forEach(g => {
         const nombreGrado = g.grado_nombre || `Grado #${g.id}`;
@@ -180,6 +202,7 @@ export async function cargarVistaAsistencias(container) {
                     <th>Alumno</th>
                     <th>Profesor</th>
                     <th>Programa</th>
+                    <th style="text-align: center;">Nº Clase</th>
                     <th>Clase</th>
                     <th>Grado</th>
                     <th>Asistencia</th>
@@ -199,6 +222,8 @@ export async function cargarVistaAsistencias(container) {
                     const evalLower = (n.evaluacion || '').toLowerCase();
                     const evalBg = evalLower === 'excelente' ? '#0d6efd' : evalLower === 'bueno' ? '#198754' : evalLower === 'deficiente' ? '#dc3545' : '#6c757d';
 
+                    const claseNum = obtenerClaseNum(n);
+
                     return `
                     <tr 
                       data-id="${n.asistencia_id}"
@@ -207,6 +232,7 @@ export async function cargarVistaAsistencias(container) {
                       data-profesor="${n.profesor || ''}" 
                       data-programa="${n.programa || ''}" 
                       data-clase="${n.clase || ''}" 
+                      data-clase-num="${claseNum || ''}"
                       data-grado="${n.grado || ''}"
                       data-observaciones="${n.observaciones || ''}"
                       data-presente="${n.presente}"
@@ -220,6 +246,7 @@ export async function cargarVistaAsistencias(container) {
                         <td data-label="Alumno" class="text-bold">${n.alumno || '-'}</td>
                         <td data-label="Profesor"><span class="text-light">${n.profesor || '-'}</span></td>
                         <td data-label="Programa"><span class="text-light">${n.programa || '-'}</span></td>
+                        <td data-label="Nº Clase" style="text-align: center;"><strong># ${claseNum || '-'}</strong></td>
                         <td data-label="Clase"><span class="text-light">${n.clase || '-'}</span></td>
                         <td data-label="Grado" class="text-bold">${n.grado || '-'}</td>
                         <td data-label="Asistencia">
@@ -381,6 +408,7 @@ export async function cargarVistaAsistencias(container) {
             const programaVal = row.getAttribute('data-programa') || '';
             const claseVal = row.getAttribute('data-clase') || '';
             const observacionesVal = row.getAttribute('data-observaciones') || '';
+            const claseNumVal = (row.getAttribute('data-clase-num') || '').toLowerCase();
 
             const alumno = row.getAttribute('data-alumno') || '';
             const grado = row.getAttribute('data-grado') || '';
@@ -398,7 +426,10 @@ export async function cargarVistaAsistencias(container) {
                                   fechaOriginal.includes(textoBusqueda) || 
                                   programa.includes(textoBusqueda) || 
                                   clase.includes(textoBusqueda) || 
-                                  observaciones.includes(textoBusqueda);
+                                  observaciones.includes(textoBusqueda) ||
+                                  claseNumVal.includes(textoBusqueda) ||
+                                  `#${claseNumVal}`.includes(textoBusqueda) ||
+                                  `# ${claseNumVal}`.includes(textoBusqueda);
 
             const coincideAlumno = !alumnoSel || alumno === alumnoSel;
             const coincidePrograma = !programaSel || programaVal === programaSel;
