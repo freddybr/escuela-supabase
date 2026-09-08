@@ -256,12 +256,40 @@ const filteredAsistencias = computed(() => {
   // Filtrar por búsqueda libre
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim();
+    const qClean = q.replace(/\s+/g, '');
     list = list.filter(a => {
       const f = formatearFecha(a.fecha).toLowerCase();
       const prog = (a.programa || '').toLowerCase();
       const cls = (a.clase || '').toLowerCase();
-      const obs = (a.observaciones || '').toLowerCase();
-      return f.includes(q) || prog.includes(q) || cls.includes(q) || obs.includes(q);
+
+      const num = obtenerClaseNum(a);
+      const numStr = (num !== undefined && num !== null && num !== '') ? String(num).trim().toLowerCase() : '';
+      let matchClaseNum = false;
+      if (numStr) {
+        if (qClean === '#') {
+          matchClaseNum = true;
+        } else {
+          const exactPatterns = [
+            numStr,
+            `#${numStr}`,
+            `n°${numStr}`,
+            `nº${numStr}`,
+            `clase${numStr}`,
+            `clase#${numStr}`
+          ];
+          if (exactPatterns.includes(qClean)) {
+            matchClaseNum = true;
+          } else {
+            const queryMatch = qClean.match(/^(?:#|n°|nº|clase#?)?0*(\d+)$/);
+            const targetMatch = numStr.match(/^0*(\d+)$/);
+            if (queryMatch && targetMatch && queryMatch[1] === targetMatch[1]) {
+              matchClaseNum = true;
+            }
+          }
+        }
+      }
+
+      return f.includes(q) || prog.includes(q) || cls.includes(q) || matchClaseNum;
     });
   }
 
@@ -275,20 +303,54 @@ const openEditAsistenciaModal = (asist) => {
   formControlId.value = asist.control_id || '';
   formAlumnoId.value = asist.alumno_id || '';
   formAlumnoNombre.value = asist.alumno || '';
-  formPresente.value = asist.presente !== undefined ? asist.presente : false;
-  formEvaluacion.value = asist.evaluacion || '';
-  formObservacion.value = asist.observaciones || '';
+  const presente = asist.presente !== undefined ? !!asist.presente : false;
+  formPresente.value = presente;
+  
+  // Si el estatus es Ausente, evaluación y observación no deben tener valores
+  if (!presente) {
+    formEvaluacion.value = '';
+    formObservacion.value = '';
+  } else {
+    formEvaluacion.value = asist.evaluacion || 'Bueno';
+    formObservacion.value = asist.observaciones || '';
+  }
   
   showModal.value = true;
 };
 
+const onFormPresenteChange = () => {
+  if (!formPresente.value) {
+    // Si cambia a Ausente, se eliminan los datos de evaluación y observación
+    formEvaluacion.value = '';
+    formObservacion.value = '';
+  } else {
+    // Si pasa a Presente y no tiene evaluación, asignar 'Bueno' por defecto
+    if (!formEvaluacion.value) {
+      formEvaluacion.value = 'Bueno';
+    }
+  }
+};
+
+watch(formPresente, (newVal) => {
+  if (!newVal) {
+    formEvaluacion.value = '';
+    formObservacion.value = '';
+  } else {
+    if (!formEvaluacion.value) {
+      formEvaluacion.value = 'Bueno';
+    }
+  }
+});
+
 const handleSave = async () => {
   if (editandoAsistenciaId.value === null) return;
 
+  const esPresente = !!formPresente.value;
   const payload = {
-    asist_presente: formPresente.value,
-    asist_evaluacion: formEvaluacion.value || null,
-    asist_observacion: formObservacion.value.trim() || null
+    asist_presente: esPresente,
+    // Si es Ausente, se eliminan los datos guardando null en la base de datos
+    asist_evaluacion: esPresente ? (formEvaluacion.value || null) : null,
+    asist_observacion: esPresente ? (formObservacion.value.trim() || null) : null
   };
 
   if (formControlId.value) payload.control_id = parseInt(formControlId.value, 10);
@@ -348,7 +410,7 @@ const handleDelete = async () => {
           type="text" 
           v-model="searchQuery" 
           class="form-control" 
-          placeholder="Buscar por Fecha, Programa, Clase u Observaciones..."
+          placeholder="Buscar por Fecha, Programa, N° Clase o Clase..."
         >
       </div>
       <div style="width: 180px;">
@@ -445,16 +507,18 @@ const handleDelete = async () => {
             <td data-label="Grado" class="text-bold">{{ n.grado || '-' }}</td>
             <td data-label="Evaluación">
               <span 
+                v-if="n.presente && n.evaluacion"
                 class="badge" 
                 :style="{
                   backgroundColor: getEvalBg(n.evaluacion),
                   color: '#ffffff'
                 }"
               >
-                {{ n.evaluacion ?? 'N/A' }}
+                {{ n.evaluacion }}
               </span>
+              <span v-else class="text-light">-</span>
             </td>
-            <td data-label="Observaciones"><span class="text-light">{{ n.observaciones ?? '' }}</span></td>
+            <td data-label="Observaciones"><span class="text-light">{{ (n.presente ? n.observaciones : '') || '-' }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -480,14 +544,19 @@ const handleDelete = async () => {
           </div>
           <div class="form-row">
             <label for="asist-presente">Estatus de Asistencia</label>
-            <select id="asist-presente" v-model="formPresente">
+            <select id="asist-presente" v-model="formPresente" @change="onFormPresenteChange">
               <option :value="true">Presente</option>
               <option :value="false">Ausente</option>
             </select>
           </div>
           <div class="form-row">
             <label for="asist-evaluacion">Evaluación</label>
-            <select id="asist-evaluacion" v-model="formEvaluacion">
+            <select 
+              id="asist-evaluacion" 
+              v-model="formEvaluacion"
+              :disabled="!formPresente"
+              :style="!formPresente ? { backgroundColor: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed' } : {}"
+            >
               <option value="">-- Sin Evaluación --</option>
               <option value="Excelente">Excelente</option>
               <option value="Bueno">Bueno</option>
@@ -500,7 +569,9 @@ const handleDelete = async () => {
               id="asist-observacion" 
               v-model="formObservacion" 
               rows="3" 
-              placeholder="Observaciones sobre la asistencia..."
+              :placeholder="formPresente ? 'Observaciones sobre la asistencia...' : 'Sin observaciones (Ausente)'"
+              :disabled="!formPresente"
+              :style="!formPresente ? { backgroundColor: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed' } : {}"
             ></textarea>
           </div>
         </div>

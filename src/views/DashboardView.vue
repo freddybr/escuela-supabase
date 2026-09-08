@@ -378,7 +378,16 @@ const periodosUnicosList = computed(() => {
 
 const periodoAnteriorNombre = computed(() => {
   const list = periodosUnicosList.value;
-  return list.length > 1 ? list[list.length - 2] : null;
+  if (!list.length || !currentPeriodoNombre.value) return null;
+  const currIdx = list.indexOf(currentPeriodoNombre.value);
+  if (currIdx > 0) {
+    return list[currIdx - 1];
+  }
+  if (currIdx === -1) {
+    const anteriores = list.filter(p => p < currentPeriodoNombre.value);
+    return anteriores.length > 0 ? anteriores[anteriores.length - 1] : null;
+  }
+  return null;
 });
 
 const asistenciasPromedioGradoPeriodo = computed(() => {

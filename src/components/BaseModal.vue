@@ -7,6 +7,14 @@ defineProps({
   titulo: {
     type: String,
     default: ''
+  },
+  maxWidth: {
+    type: String,
+    default: ''
+  },
+  zIndex: {
+    type: [Number, String],
+    default: null
   }
 });
 
@@ -14,8 +22,16 @@ const emit = defineEmits(['close']);
 </script>
 
 <template>
-  <div v-if="show" class="modal" @click.self="emit('close')">
-    <div class="modal-content">
+  <div 
+    v-if="show" 
+    class="modal" 
+    :style="zIndex ? { zIndex } : {}"
+    @click.self="emit('close')"
+  >
+    <div 
+      class="modal-content"
+      :style="maxWidth ? { maxWidth: maxWidth, width: '100%' } : {}"
+    >
       <div class="modal-header">
         <h3>{{ titulo }}</h3>
         <button class="modal-close" @click="emit('close')">✕</button>

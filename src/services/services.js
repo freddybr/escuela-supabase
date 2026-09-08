@@ -20,6 +20,55 @@ export const AuthService = {
     }
 };
 
+// Ayudantes para fechas y período vigente
+export const toDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.slice(0, 10);
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return '';
+};
+
+export const determinarPeriodoVigente = (list, refDate = new Date()) => {
+    if (!Array.isArray(list) || list.length === 0) return null;
+
+    // 1. Si algún registro tiene explícitamente anio_vigente === true
+    const explicitVigente = list.find(p => p && (p.anio_vigente === true || p.anio_vigente === 'true'));
+    if (explicitVigente) return explicitVigente;
+
+    const todayStr = toDateStr(refDate);
+
+    // 2. Período cuya fecha de inicio y fin abarque la fecha actual (inicio <= today <= fin)
+    const enCurso = list
+        .filter(p => {
+            const inicio = toDateStr(p.anio_inicio);
+            const fin = toDateStr(p.anio_fin);
+            return inicio && fin && todayStr >= inicio && todayStr <= fin;
+        })
+        .sort((a, b) => toDateStr(b.anio_inicio).localeCompare(toDateStr(a.anio_inicio)));
+
+    if (enCurso.length > 0) return enCurso[0];
+
+    // 3a. Período más reciente que ya haya comenzado (inicio <= today)
+    const iniciados = list
+        .filter(p => p && p.anio_inicio && toDateStr(p.anio_inicio) <= todayStr)
+        .sort((a, b) => toDateStr(b.anio_inicio).localeCompare(toDateStr(a.anio_inicio)));
+    if (iniciados.length > 0) return iniciados[0];
+
+    // 3b. Período futuro más próximo a iniciar
+    const futuros = list
+        .filter(p => p && p.anio_inicio && toDateStr(p.anio_inicio) > todayStr)
+        .sort((a, b) => toDateStr(a.anio_inicio).localeCompare(toDateStr(b.anio_inicio)));
+    if (futuros.length > 0) return futuros[0];
+
+    // 4. Fallback final
+    return list[list.length - 1] || null;
+};
+
 // Servicio de Períodos Académicos (Tabla: anio)
 export const PeriodoService = {
     async getPeriodos() {
@@ -35,11 +84,11 @@ export const PeriodoService = {
             .eq('id', id)
             .maybeSingle();
     },
-    async getPeriodoVigente() {
+    async getPeriodoVigente(referenceDate = new Date()) {
         const res = await PeriodoService.getPeriodos();
         if (res.error) return res;
         const list = res.data || [];
-        const vigente = list.find(p => p && (p.anio_vigente === true || p.anio_vigente === 'true')) || list[list.length - 1] || null;
+        const vigente = determinarPeriodoVigente(list, referenceDate);
         return { data: vigente, error: null };
     },
     async savePeriodo(id, payload) {
@@ -126,6 +175,13 @@ export const AlumnoService = {
     },
     async getAlumno(id) {
         return await supabase.from('alumnos').select('*').eq('id', id).maybeSingle();
+    },
+    async getAlumnosPorGrado(gradoId) {
+        return await supabase
+            .from('alumnos')
+            .select('*')
+            .eq('grado_id', gradoId)
+            .order('alumno_nombre', { ascending: true });
     },
     async getAlumnoImagenByEmail(email) {
         return await supabase.from('alumnos').select('alumno_imagen_url').eq('alumno_email', email).maybeSingle();
@@ -343,6 +399,12 @@ export const AsistenciaService = {
         return await supabase
             .from('asistencias')
             .select('alumno_id')
+            .eq('control_id', controlId);
+    },
+    async getAsistenciasPorControl(controlId) {
+        return await supabase
+            .from('asistencias')
+            .select('*')
             .eq('control_id', controlId);
     },
     async saveAsistencia(id, payload) {
