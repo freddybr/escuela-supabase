@@ -98,6 +98,10 @@ const handleCancelPhoto = () => {
 };
 
 const handleUploadPhoto = async () => {
+  if (!authStore.isAdminOrSuper) {
+    notificationStore.addNotification('Solo los usuarios con rol de Administrador o Superadministrador pueden gestionar fotografías', 'error');
+    return;
+  }
   if (!perfilIdRegistro.value) {
     notificationStore.addNotification('Seleccione un registro válido', 'error');
     return;
@@ -118,10 +122,17 @@ const handleUploadPhoto = async () => {
     notificationStore.addNotification('Fotografía actualizada correctamente', 'success');
     isNewPhotoSelected.value = false;
     perfilFotoFile.value = null;
+    if (fileInput.value) fileInput.value.value = '';
     
     // Recargar datos y refrescar perfil global si afecta al usuario actual
     await loadDatos();
     await authStore.loadUserProfile(authStore.user);
+
+    // Refrescar la vista previa actual con timestamp para eludir la caché del navegador
+    const reg = selectedRegistroData.value;
+    if (reg && reg.foto) {
+      perfilFotoPreview.value = `${reg.foto}?t=${Date.now()}`;
+    }
   } catch (error) {
     notificationStore.addNotification(`Error al guardar la fotografía: ${error.message}`, 'error');
   } finally {
@@ -256,8 +267,8 @@ const loadDatos = async () => {
     profesores.value = resProfesores.data || [];
     alumnos.value = resAlumnos.data || [];
 
-    // Ajustar tab por defecto si es docente (oculta perfil)
-    if (authStore.isDocente) {
+    // Ajustar tab por defecto: solo Admin o Superadmin tienen acceso a la asociación de fotos
+    if (!authStore.isAdminOrSuper) {
       activeTab.value = 'cuenta';
     } else {
       activeTab.value = 'perfil';
@@ -297,7 +308,7 @@ onMounted(() => {
       <!-- BARRA LATERAL DE CONFIGURACIÓN -->
       <div class="config-sidebar">
         <button 
-          v-if="!authStore.isDocente"
+          v-if="authStore.isAdminOrSuper"
           type="button" 
           :class="['config-tab-btn', { active: activeTab === 'perfil' }]" 
           @click="activeTab = 'perfil'"
@@ -329,7 +340,7 @@ onMounted(() => {
       <div class="config-content">
         
         <!-- 1. SECCIÓN PERFIL -->
-        <div v-if="activeTab === 'perfil' && !authStore.isDocente" class="config-section active">
+        <div v-if="activeTab === 'perfil' && authStore.isAdminOrSuper" class="config-section active">
           <h3 class="config-section-title">Asociación de Perfil</h3>
           <p class="config-section-subtitle">Gestión e inyección de fotografías para usuarios en la base de datos.</p>
           
