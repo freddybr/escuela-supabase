@@ -84,6 +84,7 @@ const loadDatos = async () => {
 
     profesores.value = resProfesores.data || [];
     grados.value = resGrados.data || [];
+    cacheBuster.value = Date.now();
   } catch (error) {
     errorMsg.value = error.message;
   } finally {
@@ -95,9 +96,12 @@ onMounted(() => {
   loadDatos();
 });
 
+const cacheBuster = ref(Date.now());
+
 const getProfesorFoto = (p) => {
   if (p.profe_imagen_url && p.profe_imagen_url.trim() !== '') {
-    return p.profe_imagen_url;
+    const sep = p.profe_imagen_url.includes('?') ? '&' : '?';
+    return `${p.profe_imagen_url}${sep}t=${cacheBuster.value}`;
   }
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(p.profe_nombre || 'Profe')}&backgroundColor=4f46e5`;
 };

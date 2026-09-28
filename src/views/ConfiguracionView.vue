@@ -59,7 +59,8 @@ watch(perfilIdRegistro, (newVal) => {
   }
   const reg = selectedRegistroData.value;
   if (reg && reg.foto && reg.foto.trim() !== '') {
-    perfilFotoPreview.value = reg.foto;
+    const sep = reg.foto.includes('?') ? '&' : '?';
+    perfilFotoPreview.value = `${reg.foto}${sep}t=${Date.now()}`;
   } else {
     const name = reg ? reg.nombre : 'Usuario';
     const seed = encodeURIComponent(name.substring(0, 2));
@@ -89,7 +90,8 @@ const handleCancelPhoto = () => {
   // Forzar actualización del preview al valor original
   const reg = selectedRegistroData.value;
   if (reg && reg.foto && reg.foto.trim() !== '') {
-    perfilFotoPreview.value = reg.foto;
+    const sep = reg.foto.includes('?') ? '&' : '?';
+    perfilFotoPreview.value = `${reg.foto}${sep}t=${Date.now()}`;
   } else {
     const name = reg ? reg.nombre : 'Usuario';
     const seed = encodeURIComponent(name.substring(0, 2));
@@ -112,10 +114,12 @@ const handleUploadPhoto = async () => {
   }
 
   isUploading.value = true;
+  const currentSelectedId = perfilIdRegistro.value;
+  const targetReg = selectedRegistroData.value;
   try {
     const { error } = perfilTipo.value === 'profesor'
-      ? await ProfesorService.updateProfesorImagen(perfilIdRegistro.value, perfilFotoFile.value)
-      : await AlumnoService.updateAlumnoImagen(perfilIdRegistro.value, perfilFotoFile.value);
+      ? await ProfesorService.updateProfesorImagen(currentSelectedId, perfilFotoFile.value, targetReg?.nombre)
+      : await AlumnoService.updateAlumnoImagen(currentSelectedId, perfilFotoFile.value, targetReg?.nombre);
 
     if (error) throw error;
 
@@ -124,14 +128,25 @@ const handleUploadPhoto = async () => {
     perfilFotoFile.value = null;
     if (fileInput.value) fileInput.value.value = '';
     
-    // Recargar datos y refrescar perfil global si afecta al usuario actual
+    // Recargar datos conservando el registro seleccionado
     await loadDatos();
-    await authStore.loadUserProfile(authStore.user);
+    perfilIdRegistro.value = currentSelectedId;
+
+    try {
+      if (typeof authStore.loadUserProfile === 'function') {
+        await authStore.loadUserProfile(authStore.user);
+      } else if (typeof authStore.checkSession === 'function') {
+        await authStore.checkSession();
+      }
+    } catch (errPerfil) {
+      console.warn('Aviso: no se pudo refrescar el avatar superior:', errPerfil);
+    }
 
     // Refrescar la vista previa actual con timestamp para eludir la caché del navegador
     const reg = selectedRegistroData.value;
     if (reg && reg.foto) {
-      perfilFotoPreview.value = `${reg.foto}?t=${Date.now()}`;
+      const sep = reg.foto.includes('?') ? '&' : '?';
+      perfilFotoPreview.value = `${reg.foto}${sep}t=${Date.now()}`;
     }
   } catch (error) {
     notificationStore.addNotification(`Error al guardar la fotografía: ${error.message}`, 'error');
@@ -272,7 +287,8 @@ const loadDatos = async () => {
       activeTab.value = 'cuenta';
     } else {
       activeTab.value = 'perfil';
-      if (perfilRegistrosOptions.value.length > 0) {
+      const exists = perfilRegistrosOptions.value.some(r => String(r.id) === String(perfilIdRegistro.value));
+      if (!exists && perfilRegistrosOptions.value.length > 0) {
         perfilIdRegistro.value = perfilRegistrosOptions.value[0].id;
       }
     }

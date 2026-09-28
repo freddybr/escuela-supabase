@@ -75,7 +75,8 @@ export const useAuthStore = defineStore('auth', () => {
       window.usuarioRol = userRole.value;
       window.usuarioEmail = userEmail.value;
 
-      userAvatarUrl.value = fotoUrl || getFallbackAvatar(currentUser.email || 'Usuario');
+      const sep = (fotoUrl && fotoUrl.includes('?')) ? '&' : '?';
+      userAvatarUrl.value = fotoUrl ? `${fotoUrl}${sep}t=${Date.now()}` : getFallbackAvatar(currentUser.email || 'Usuario');
       layoutReady.value = true;
     } catch (err) {
       console.error('Error al cargar perfil de usuario:', err);
@@ -145,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkSession,
+    loadUserProfile,
     setupInactivityMonitoring,
     removeInactivityMonitoring,
     resetInactivityTimer

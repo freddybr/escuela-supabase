@@ -81,6 +81,7 @@ const loadDatos = async () => {
 
     alumnos.value = resAlumnos.data || [];
     grados.value = resGrados.data || [];
+    cacheBuster.value = Date.now();
   } catch (error) {
     errorMsg.value = error.message;
   } finally {
@@ -92,9 +93,12 @@ onMounted(() => {
   loadDatos();
 });
 
+const cacheBuster = ref(Date.now());
+
 const getMateriaFoto = (alumno) => {
   if (alumno.alumno_imagen_url && alumno.alumno_imagen_url.trim() !== '') {
-    return alumno.alumno_imagen_url;
+    const sep = alumno.alumno_imagen_url.includes('?') ? '&' : '?';
+    return `${alumno.alumno_imagen_url}${sep}t=${cacheBuster.value}`;
   }
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(alumno.alumno_nombre || 'Alumno')}&backgroundColor=0284c7`;
 };

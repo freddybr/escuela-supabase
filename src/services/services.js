@@ -201,16 +201,25 @@ export const AlumnoService = {
             .limit(1)
             .maybeSingle();
     },
-    async updateAlumnoImagen(id, file) {
+    async updateAlumnoImagen(id, file, nombre = null) {
         try {
-            // 1. Obtener datos actuales del alumno (nombre y URL actual si existe)
+            // 1. Obtener datos actuales del alumno si no se proporcionó nombre
+            let nombreBase = nombre;
+            let currentUrl = null;
+
             const { data: alumno } = await supabase
                 .from('alumnos')
                 .select('alumno_nombre, alumno_imagen_url')
                 .eq('id', id)
                 .maybeSingle();
 
-            const nombreBase = alumno && alumno.alumno_nombre ? alumno.alumno_nombre : 'alumno';
+            if (alumno) {
+                if (!nombreBase && alumno.alumno_nombre) nombreBase = alumno.alumno_nombre;
+                if (alumno.alumno_imagen_url) currentUrl = alumno.alumno_imagen_url;
+            }
+
+            if (!nombreBase) nombreBase = 'alumno';
+
             const nombreNormalizado = nombreBase
                 .toLowerCase()
                 .normalize("NFD")
@@ -219,65 +228,57 @@ export const AlumnoService = {
                 .trim()
                 .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
 
-            // Extraer nombre del archivo actual si ya posee URL para conservar la misma URL
-            let existingFileName = null;
-            if (alumno && alumno.alumno_imagen_url) {
-                try {
-                    const decoded = decodeURIComponent(alumno.alumno_imagen_url);
-                    const marker = '/fotos-alumnos/';
-                    const idx = decoded.indexOf(marker);
-                    if (idx !== -1) {
-                        existingFileName = decoded.substring(idx + marker.length).split('?')[0];
-                    } else {
-                        const parts = decoded.split('/');
-                        existingFileName = parts[parts.length - 1].split('?')[0];
-                    }
-                } catch (e) {
-                    console.warn('Error al extraer nombre de archivo previo:', e);
-                }
-            }
-
             const fileExt = file.name ? file.name.split('.').pop().toLowerCase() : 'jpg';
+            // Nombre de archivo canónico: siempre vinculado al ID del alumno
             const canonicalName = `${id}_${nombreNormalizado}_alumno.${fileExt}`;
-            const fileName = existingFileName || canonicalName;
 
-            // 2. Eliminar archivo(s) previo(s) en Supabase Storage para evitar conflicto de RLS al sobreescribir
+            // 2. Eliminar archivo(s) previo(s) del alumno en Supabase Storage
             const filesToDelete = new Set();
-            if (existingFileName) filesToDelete.add(existingFileName);
             filesToDelete.add(canonicalName);
             ['jpg', 'jpeg', 'png', 'webp'].forEach(ext => {
                 filesToDelete.add(`${id}_${nombreNormalizado}_alumno.${ext}`);
                 filesToDelete.add(`${nombreNormalizado}_alumno_${id}.${ext}`);
             });
 
+            if (currentUrl) {
+                try {
+                    const decoded = decodeURIComponent(currentUrl);
+                    const marker = '/fotos-alumnos/';
+                    const idx = decoded.indexOf(marker);
+                    let oldFile = null;
+                    if (idx !== -1) {
+                        oldFile = decoded.substring(idx + marker.length).split('?')[0];
+                    } else {
+                        const parts = decoded.split('/');
+                        oldFile = parts[parts.length - 1].split('?')[0];
+                    }
+                    if (oldFile && (oldFile.startsWith(`${id}_`) || oldFile.includes(`_${id}.`))) {
+                        filesToDelete.add(oldFile);
+                    }
+                } catch (e) {
+                    console.warn('Error al verificar archivo previo:', e);
+                }
+            }
+
             await supabase.storage
                 .from('fotos-alumnos')
                 .remove(Array.from(filesToDelete));
 
-            // 3. Subir el archivo nuevo
+            // 3. Subir el archivo nuevo con el nombre canónico
             const { error: uploadError } = await supabase.storage
                 .from('fotos-alumnos')
-                .upload(fileName, file, {
+                .upload(canonicalName, file, {
                     upsert: true,
                     contentType: file.type || 'image/jpeg'
                 });
             if (uploadError) return { error: uploadError };
 
-            // 4. Obtener URL pública (se mantiene intacta para no alterar la referencia en el módulo)
+            // 4. Obtener URL pública canónica y actualizar en la base de datos
             const { data: { publicUrl } } = supabase.storage
                 .from('fotos-alumnos')
-                .getPublicUrl(fileName);
+                .getPublicUrl(canonicalName);
 
             let updateRes = await supabase.from('alumnos').update({ alumno_imagen_url: publicUrl }).eq('id', id);
-            if (updateRes.error && updateRes.error.message?.includes('row-level security')) {
-                const rpcRes = await supabase.rpc('actualizar_foto_alumno', {
-                    p_id: id,
-                    p_url: publicUrl
-                });
-                if (!rpcRes.error) {
-                    return { data: rpcRes.data, error: null };
-                }
-            }
             return updateRes;
         } catch (err) {
             return { error: err };
@@ -320,16 +321,25 @@ export const ProfesorService = {
             .limit(1)
             .maybeSingle();
     },
-    async updateProfesorImagen(id, file) {
+    async updateProfesorImagen(id, file, nombre = null) {
         try {
-            // 1. Obtener datos actuales del profesor (nombre y URL actual si existe)
+            // 1. Obtener datos actuales del profesor si no se proporcionó nombre
+            let nombreBase = nombre;
+            let currentUrl = null;
+
             const { data: profe } = await supabase
                 .from('profesores')
                 .select('profe_nombre, profe_imagen_url')
                 .eq('id', id)
                 .maybeSingle();
 
-            const nombreBase = profe && profe.profe_nombre ? profe.profe_nombre : 'profesor';
+            if (profe) {
+                if (!nombreBase && profe.profe_nombre) nombreBase = profe.profe_nombre;
+                if (profe.profe_imagen_url) currentUrl = profe.profe_imagen_url;
+            }
+
+            if (!nombreBase) nombreBase = 'profesor';
+
             const nombreNormalizado = nombreBase
                 .toLowerCase()
                 .normalize("NFD")
@@ -338,65 +348,57 @@ export const ProfesorService = {
                 .trim()
                 .replace(/\s+/g, '_');           // Reemplazar espacios por guiones bajos
 
-            // Extraer nombre del archivo actual si ya posee URL
-            let existingFileName = null;
-            if (profe && profe.profe_imagen_url) {
-                try {
-                    const decoded = decodeURIComponent(profe.profe_imagen_url);
-                    const marker = '/fotos-profesores/';
-                    const idx = decoded.indexOf(marker);
-                    if (idx !== -1) {
-                        existingFileName = decoded.substring(idx + marker.length).split('?')[0];
-                    } else {
-                        const parts = decoded.split('/');
-                        existingFileName = parts[parts.length - 1].split('?')[0];
-                    }
-                } catch (e) {
-                    console.warn('Error al extraer nombre de archivo previo:', e);
-                }
-            }
-
             const fileExt = file.name ? file.name.split('.').pop().toLowerCase() : 'jpg';
+            // Nombre de archivo canónico: siempre vinculado al ID del profesor
             const canonicalName = `${id}_${nombreNormalizado}_profesor.${fileExt}`;
-            const fileName = existingFileName || canonicalName;
 
-            // 2. Eliminar archivo(s) previo(s) en Supabase Storage
+            // 2. Eliminar archivo(s) previo(s) del profesor en Supabase Storage
             const filesToDelete = new Set();
-            if (existingFileName) filesToDelete.add(existingFileName);
             filesToDelete.add(canonicalName);
             ['jpg', 'jpeg', 'png', 'webp'].forEach(ext => {
                 filesToDelete.add(`${id}_${nombreNormalizado}_profesor.${ext}`);
                 filesToDelete.add(`${nombreNormalizado}_profesor_${id}.${ext}`);
             });
 
+            if (currentUrl) {
+                try {
+                    const decoded = decodeURIComponent(currentUrl);
+                    const marker = '/fotos-profesores/';
+                    const idx = decoded.indexOf(marker);
+                    let oldFile = null;
+                    if (idx !== -1) {
+                        oldFile = decoded.substring(idx + marker.length).split('?')[0];
+                    } else {
+                        const parts = decoded.split('/');
+                        oldFile = parts[parts.length - 1].split('?')[0];
+                    }
+                    if (oldFile && (oldFile.startsWith(`${id}_`) || oldFile.includes(`_${id}.`))) {
+                        filesToDelete.add(oldFile);
+                    }
+                } catch (e) {
+                    console.warn('Error al verificar archivo previo:', e);
+                }
+            }
+
             await supabase.storage
                 .from('fotos-profesores')
                 .remove(Array.from(filesToDelete));
 
-            // 3. Subir al bucket
+            // 3. Subir al bucket con el nombre canónico
             const { error: uploadError } = await supabase.storage
                 .from('fotos-profesores')
-                .upload(fileName, file, {
+                .upload(canonicalName, file, {
                     upsert: true,
                     contentType: file.type || 'image/jpeg'
                 });
             if (uploadError) return { error: uploadError };
 
-            // 4. Obtener URL pública (idéntica)
+            // 4. Obtener URL pública canónica y actualizar en la base de datos
             const { data: { publicUrl } } = supabase.storage
                 .from('fotos-profesores')
-                .getPublicUrl(fileName);
+                .getPublicUrl(canonicalName);
 
             let updateRes = await supabase.from('profesores').update({ profe_imagen_url: publicUrl }).eq('id', id);
-            if (updateRes.error && updateRes.error.message?.includes('row-level security')) {
-                const rpcRes = await supabase.rpc('actualizar_foto_profesor', {
-                    p_id: id,
-                    p_url: publicUrl
-                });
-                if (!rpcRes.error) {
-                    return { data: rpcRes.data, error: null };
-                }
-            }
             return updateRes;
         } catch (err) {
             return { error: err };
