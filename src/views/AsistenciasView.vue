@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useNotificationStore } from '@/stores/notifications';
-import { AsistenciaService, AlumnoService, ControlService, ClaseService, AsignacionService, ProgramaService, GradoService } from '@/services/services';
+import { AsistenciaService, AlumnoService, ControlService, ClaseService, AsignacionService, ProgramaService, GradoService, PeriodoService } from '@/services/services';
 import HeaderSeccion from '@/components/HeaderSeccion.vue';
 import BaseModal from '@/components/BaseModal.vue';
 
@@ -14,7 +14,8 @@ const asistenciasVista = ref([]);
 const alumnos = ref([]);
 const controles = ref([]);
 const clases = ref([]);
-const asignacionesActivas = ref([]);
+const asignaciones = ref([]);
+const periodos = ref([]);
 const programas = ref([]);
 const grados = ref([]);
 
@@ -23,8 +24,10 @@ const errorMsg = ref('');
 
 // Filtros reactivos
 const searchQuery = ref('');
-const filterAlumno = ref('');
+const filterPeriodo = ref('');
+const filterEstatusAsignacion = ref('');
 const filterAsignacion = ref('');
+const filterAlumno = ref('');
 const filterProfesor = ref('');
 const filterAsistVal = ref('');
 
@@ -49,22 +52,24 @@ const loadDatos = async () => {
   isLoading.value = true;
   errorMsg.value = '';
   try {
-    const [resVista, resAlumnos, resControl, resClases, resAsignaciones, resProgramas, resGrados, resRawAsistencias] = await Promise.all([
+    const [resVista, resAlumnos, resControl, resClases, resAsignacionesDetalles, resProgramas, resGrados, resRawAsistencias, resPeriodos, resAsignacionesRaw] = await Promise.all([
       AsistenciaService.getAsistenciasVista(),
       AlumnoService.getAlumnos(),
       ControlService.getControles(),
       ClaseService.getClasesTemaYPrograma(),
-      AsignacionService.getAsignacionesActivas(),
+      AsignacionService.getAsignacionesDetalles(),
       ProgramaService.getProgramas(),
       GradoService.getGrados(),
-      AsistenciaService.getAsistencias()
+      AsistenciaService.getAsistencias(),
+      PeriodoService.getPeriodos(),
+      AsignacionService.getAsignaciones()
     ]);
 
     if (resVista.error) throw resVista.error;
     if (resAlumnos.error) throw resAlumnos.error;
     if (resControl.error) throw resControl.error;
     if (resClases.error) throw resClases.error;
-    if (resAsignaciones.error) throw resAsignaciones.error;
+    if (resAsignacionesDetalles.error) throw resAsignacionesDetalles.error;
     if (resRawAsistencias.error) throw resRawAsistencias.error;
 
     // Crear mapa de asistencias crudas
@@ -83,9 +88,9 @@ const loadDatos = async () => {
     });
     alumnos.value = resAlumnos.data || [];
     clases.value = resClases.data || [];
-    asignacionesActivas.value = resAsignaciones.data || [];
     programas.value = resProgramas.data || [];
     grados.value = resGrados.data || [];
+    periodos.value = resPeriodos?.data || [];
 
     // Mapear fotos de alumnos
     const fotoMap = new Map();
@@ -96,7 +101,7 @@ const loadDatos = async () => {
     });
     mapaFotosAlumnos.value = fotoMap;
 
-    // Mapear números de clase
+    // Mapear programas
     const progMap = new Map();
     programas.value.forEach(p => {
       progMap.set(p.id, p.programa_tema || `Programa #${p.id}`);
@@ -104,17 +109,38 @@ const loadDatos = async () => {
 
     // Mapear nombres de grados
     const gradoMap = new Map();
+    const gradoNombreToIdMap = new Map();
     grados.value.forEach(g => {
       gradoMap.set(g.id, g.grado_numero || g.grado_nombre || `Grado #${g.id}`);
+      if (g.grado_numero) gradoNombreToIdMap.set(String(g.grado_numero).trim().toLowerCase(), g.id);
+      if (g.grado_nombre) gradoNombreToIdMap.set(String(g.grado_nombre).trim().toLowerCase(), g.id);
     });
 
-    // Mapear programas y grados a las asignaciones activas
-    asignacionesActivas.value = (resAsignaciones.data || []).map(asig => ({
-      ...asig,
-      asigna_id: asig.id,
-      prog_nombre: progMap.get(asig.programa_id) || `Prog #${asig.programa_id}`,
-      grado_nombre: gradoMap.get(asig.grado_id) || `Grado #${asig.grado_id}`
-    }));
+    // Mapa de asignaciones crudas para obtener grado_id y anio_id
+    const rawAsigMap = new Map();
+    (resAsignacionesRaw?.data || []).forEach(ra => {
+      rawAsigMap.set(String(ra.id), ra);
+    });
+
+    // Mapear todas las asignaciones registradas con su programa, grado, estatus y período
+    const detallesList = resAsignacionesDetalles.data || [];
+    asignaciones.value = detallesList.map(asig => {
+      const raw = rawAsigMap.get(String(asig.asigna_id));
+      let gId = raw ? raw.grado_id : null;
+      if (!gId && asig.grado_numero) {
+        gId = gradoNombreToIdMap.get(String(asig.grado_numero).trim().toLowerCase()) || null;
+      }
+      return {
+        ...asig,
+        asigna_id: asig.asigna_id,
+        programa_id: asig.programa_id,
+        prog_nombre: asig.programa_tema || progMap.get(asig.programa_id) || `Prog #${asig.programa_id}`,
+        grado_id: gId,
+        grado_nombre: asig.grado_numero || (gId ? gradoMap.get(gId) : `Grado #${asig.grado_numero}`),
+        asigna_estatus: asig.asigna_estatus || 'Pendiente',
+        anio_periodo: (asig.anio_periodo || '').trim()
+      };
+    });
 
     const claseNumMap = new Map();
     clases.value.forEach(c => {
@@ -151,6 +177,83 @@ const loadDatos = async () => {
 
 onMounted(() => {
   loadDatos();
+});
+
+// Períodos definidos en el módulo de Períodos que tienen registros en la columna de períodos de Asignaciones
+const periodosDisponibles = computed(() => {
+  const registradosEnAsignaciones = new Set(
+    asignaciones.value
+      .map(a => (a.anio_periodo || '').trim())
+      .filter(Boolean)
+  );
+
+  if (periodos.value && periodos.value.length > 0) {
+    const definidosYRegistrados = periodos.value
+      .map(p => (p.anio_periodo || '').trim())
+      .filter(nombre => nombre && registradosEnAsignaciones.has(nombre));
+    return [...new Set(definidosYRegistrados)];
+  }
+
+  return Array.from(registradosEnAsignaciones).sort();
+});
+
+// Estatus de Asignaciones disponibles para filtro (Activa, Pendiente, Terminada)
+const estatusAsignacionesOpciones = computed(() => {
+  const defaults = ['Activa', 'Pendiente', 'Terminada'];
+  const presentes = asignaciones.value
+    .map(a => a.asigna_estatus)
+    .filter(Boolean);
+  return [...new Set([...defaults, ...presentes])];
+});
+
+// Asignaciones registradas en Supabase para el selector, filtradas por Período y/o Estatus de Asignación
+const asignacionesParaFiltro = computed(() => {
+  return asignaciones.value.filter(asig => {
+    if (filterPeriodo.value) {
+      const periodoAsig = (asig.anio_periodo || '').trim();
+      if (periodoAsig !== filterPeriodo.value.trim()) {
+        return false;
+      }
+    }
+    if (filterEstatusAsignacion.value) {
+      if (asig.asigna_estatus !== filterEstatusAsignacion.value) {
+        return false;
+      }
+    }
+    return true;
+  });
+});
+
+// Sincronizar selección de asignación si cambia período o estatus de asignación
+watch([filterPeriodo, filterEstatusAsignacion], () => {
+  if (filterAsignacion.value) {
+    const sigueValida = asignacionesParaFiltro.value.some(
+      a => String(a.asigna_id) === String(filterAsignacion.value)
+    );
+    if (!sigueValida) {
+      filterAsignacion.value = '';
+    }
+  }
+});
+
+// Subtítulo dinámico para el header basado en los filtros seleccionados
+const dynamicSubtitle = computed(() => {
+  if (filterAsignacion.value) {
+    const found = asignaciones.value.find(a => String(a.asigna_id) === String(filterAsignacion.value));
+    if (found) {
+      return `Asig #${found.asigna_id}: ${found.prog_nombre} | Grado: ${found.grado_nombre} (${found.asigna_estatus})`;
+    }
+  }
+  if (filterPeriodo.value && filterEstatusAsignacion.value) {
+    return `Período: ${filterPeriodo.value} | Estatus Asignación: ${filterEstatusAsignacion.value}`;
+  }
+  if (filterPeriodo.value) {
+    return `Período: ${filterPeriodo.value}`;
+  }
+  if (filterEstatusAsignacion.value) {
+    return `Estatus Asignación: ${filterEstatusAsignacion.value}`;
+  }
+  return 'Control y registro de asistencias de clases.';
 });
 
 // Ayudante para obtener número de clase
@@ -198,28 +301,51 @@ const profesoresUnicos = computed(() => {
   return [...new Set(profNames)].sort();
 });
 
-// Función auxiliar para filtrar asistencias por las relaciones completas de la asignación seleccionada
-const filtrarPorAsignacion = (a, asignaId) => {
-  if (!asignaId) return true;
-  const selectedAsig = asignacionesActivas.value.find(asig => String(asig.asigna_id) === String(asignaId));
-  if (!selectedAsig) return false;
+// Función auxiliar para verificar si una asistencia corresponde a los filtros de asignación/período/estatus
+const matchesFiltrosAsignacion = (a) => {
+  // 1. Si hay una asignación específica seleccionada
+  if (filterAsignacion.value) {
+    const selectedAsig = asignaciones.value.find(asig => String(asig.asigna_id) === String(filterAsignacion.value));
+    if (!selectedAsig) return false;
 
-  // 1. Encontrar el control de la asistencia para validar el asigna_id
-  const ctrl = controles.value.find(c => String(c.id) === String(a.control_id));
-  if (!ctrl) return false;
-  const matchAsigna = String(ctrl.asigna_id) === String(selectedAsig.asigna_id);
+    const ctrl = controles.value.find(c => String(c.id) === String(a.control_id));
+    if (!ctrl) return false;
+    const matchAsigna = String(ctrl.asigna_id) === String(selectedAsig.asigna_id);
 
-  // 2. Encontrar el alumno para validar el grado_id
-  const alum = alumnos.value.find(al => String(al.id) === String(a.alumno_id));
-  const matchGrado = alum && String(alum.grado_id) === String(selectedAsig.grado_id);
+    if (selectedAsig.grado_id) {
+      const alum = alumnos.value.find(al => String(al.id) === String(a.alumno_id));
+      const matchGrado = alum && String(alum.grado_id) === String(selectedAsig.grado_id);
+      return matchAsigna && matchGrado;
+    }
+    return matchAsigna;
+  }
 
-  return matchAsigna && matchGrado;
+  // 2. Si no hay asignación específica pero hay filtro de período o estatus de asignación
+  if (filterPeriodo.value || filterEstatusAsignacion.value) {
+    const ctrl = controles.value.find(c => String(c.id) === String(a.control_id));
+    if (!ctrl) return false;
+
+    const matchingAsig = asignacionesParaFiltro.value.find(asig => String(asig.asigna_id) === String(ctrl.asigna_id));
+    if (!matchingAsig) return false;
+
+    if (matchingAsig.grado_id) {
+      const alum = alumnos.value.find(al => String(al.id) === String(a.alumno_id));
+      if (alum && String(alum.grado_id) !== String(matchingAsig.grado_id)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return true;
 };
 
-// Contador total basado en el filtro de asignación
+// Contador total basado en el filtro de asignación, período o estatus de asignación
 const totalCountForAsignacion = computed(() => {
-  if (!filterAsignacion.value) return asistenciasVista.value.length;
-  return asistenciasVista.value.filter(a => filtrarPorAsignacion(a, filterAsignacion.value)).length;
+  if (filterAsignacion.value || filterPeriodo.value || filterEstatusAsignacion.value) {
+    return asistenciasVista.value.filter(a => matchesFiltrosAsignacion(a)).length;
+  }
+  return asistenciasVista.value.length;
 });
 
 // Asistencias filtradas para la tabla principal
@@ -240,9 +366,9 @@ const filteredAsistencias = computed(() => {
   if (filterAlumno.value) {
     list = list.filter(a => a.alumno === filterAlumno.value);
   }
-  // Filtrar por asignación
-  if (filterAsignacion.value) {
-    list = list.filter(a => filtrarPorAsignacion(a, filterAsignacion.value));
+  // Filtrar por asignación, período o estatus de asignación
+  if (filterAsignacion.value || filterPeriodo.value || filterEstatusAsignacion.value) {
+    list = list.filter(a => matchesFiltrosAsignacion(a));
   }
   // Filtrar por profesor
   if (filterProfesor.value) {
@@ -391,7 +517,7 @@ const handleDelete = async () => {
     <HeaderSeccion 
       tipo="asistencias" 
       titulo="Asistencias" 
-      subtitulo="Solo Asignaciones Activas"
+      :subtitulo="dynamicSubtitle"
     >
       <div style="display: flex; align-items: center; gap: 12px;">
         <span class="control-counter-badge">
@@ -413,27 +539,39 @@ const handleDelete = async () => {
           placeholder="Buscar por Fecha, Programa, N° Clase o Clase..."
         >
       </div>
-      <div style="width: 180px;">
+      <div style="width: 150px; max-width: 100%;">
+        <select v-model="filterPeriodo" class="form-select">
+          <option value="">Períodos</option>
+          <option v-for="p in periodosDisponibles" :key="p" :value="p">{{ p }}</option>
+        </select>
+      </div>
+      <div style="width: 175px; max-width: 100%;">
+        <select v-model="filterEstatusAsignacion" class="form-select">
+          <option value="">Estatus Asignación</option>
+          <option v-for="est in estatusAsignacionesOpciones" :key="est" :value="est">{{ est }}</option>
+        </select>
+      </div>
+      <div style="flex: 1 1 280px; max-width: 100%;">
+        <select v-model="filterAsignacion" class="form-select">
+          <option value="">Asignaciones</option>
+          <option v-for="asig in asignacionesParaFiltro" :key="asig.asigna_id" :value="asig.asigna_id">
+            Asig #{{ asig.asigna_id }} - Prog #{{ asig.programa_id }}: {{ asig.prog_nombre }} | Grado: {{ asig.grado_nombre }} ({{ asig.asigna_estatus }})
+          </option>
+        </select>
+      </div>
+      <div style="width: 160px; max-width: 100%;">
         <select v-model="filterAlumno" class="form-select">
           <option value="">Alumnos</option>
           <option v-for="name in alumnosUnicos" :key="name" :value="name">{{ name }}</option>
         </select>
       </div>
-      <div style="width: 320px; max-width: 100%;">
-        <select v-model="filterAsignacion" class="form-select">
-          <option value="">Asignaciones</option>
-          <option v-for="asig in asignacionesActivas" :key="asig.asigna_id" :value="asig.asigna_id">
-            Asig #{{ asig.asigna_id }} - Prog #{{ asig.programa_id }}: {{ asig.prog_nombre }} | Grado: {{ asig.grado_nombre }}
-          </option>
-        </select>
-      </div>
-      <div style="width: 180px;">
+      <div style="width: 160px; max-width: 100%;">
         <select v-model="filterProfesor" class="form-select">
           <option value="">Profesores</option>
           <option v-for="name in profesoresUnicos" :key="name" :value="name">{{ name }}</option>
         </select>
       </div>
-      <div style="width: 180px;">
+      <div style="width: 160px; max-width: 100%;">
         <select v-model="filterAsistVal" class="form-select">
           <option value="">Asistencia (Todos)</option>
           <option value="presente">Presente</option>

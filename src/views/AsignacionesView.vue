@@ -214,7 +214,7 @@ const handleDelete = async () => {
               <span 
                 class="badge" 
                 :style="{
-                  backgroundColor: n.asigna_estatus === 'Activa' ? '#c7f9cc' : '#ffe3e0',
+                  backgroundColor: n.asigna_estatus === 'Activa' ? '#c7f9cc' : n.asigna_estatus === 'Pendiente' ? '#ffc107' : '#ffe3e0',
                   color: '#000'
                 }"
               >

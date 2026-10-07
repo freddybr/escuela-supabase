@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useNotificationStore } from '@/stores/notifications';
-import { ControlService, ProfesorService, AsignacionService, AlumnoService, AsistenciaService } from '@/services/services';
+import { ControlService, ProfesorService, AsignacionService, AlumnoService, AsistenciaService, PeriodoService } from '@/services/services';
 import HeaderSeccion from '@/components/HeaderSeccion.vue';
 import BaseModal from '@/components/BaseModal.vue';
 
@@ -12,12 +12,15 @@ const notificationStore = useNotificationStore();
 const controlVista = ref([]);
 const profesores = ref([]);
 const asignaciones = ref([]);
+const periodos = ref([]);
 
 const isLoading = ref(true);
 const errorMsg = ref('');
 
 // Filtros reactivos
 const searchQuery = ref('');
+const selectedPeriodo = ref('');
+const selectedEstatusAsignacion = ref('');
 const selectedAsignacion = ref('');
 const selectedEstatus = ref('');
 
@@ -48,10 +51,11 @@ const loadDatos = async () => {
   isLoading.value = true;
   errorMsg.value = '';
   try {
-    const [resVista, resProfesores, resAsignaciones] = await Promise.all([
+    const [resVista, resProfesores, resAsignaciones, resPeriodos] = await Promise.all([
       ControlService.getControlesVista(),
       ProfesorService.getProfesoresParaControl(),
-      AsignacionService.getAsignacionesDetalles()
+      AsignacionService.getAsignacionesDetalles(),
+      PeriodoService.getPeriodos()
     ]);
 
     if (resVista.error) throw resVista.error;
@@ -61,6 +65,7 @@ const loadDatos = async () => {
     controlVista.value = resVista.data || [];
     profesores.value = resProfesores.data || [];
     asignaciones.value = resAsignaciones.data || [];
+    periodos.value = resPeriodos?.data || [];
   } catch (error) {
     errorMsg.value = error.message;
   } finally {
@@ -72,17 +77,69 @@ onMounted(() => {
   loadDatos();
 });
 
-// Lista única de estatus para filtro
+// Períodos definidos en el módulo de Períodos que tienen registros en la columna de períodos de Asignaciones
+const periodosDisponibles = computed(() => {
+  const registradosEnAsignaciones = new Set(
+    asignaciones.value
+      .map(a => (a.anio_periodo || '').trim())
+      .filter(Boolean)
+  );
+
+  if (periodos.value && periodos.value.length > 0) {
+    const definidosYRegistrados = periodos.value
+      .map(p => (p.anio_periodo || '').trim())
+      .filter(nombre => nombre && registradosEnAsignaciones.has(nombre));
+    return [...new Set(definidosYRegistrados)];
+  }
+
+  return Array.from(registradosEnAsignaciones).sort();
+});
+
+// Estatus de Asignaciones disponibles para filtro (Activa, Pendiente, Terminada)
+const estatusAsignacionesOpciones = computed(() => {
+  const defaults = ['Activa', 'Pendiente', 'Terminada'];
+  const presentes = asignaciones.value
+    .map(a => a.asigna_estatus)
+    .filter(Boolean);
+  return [...new Set([...defaults, ...presentes])];
+});
+
+// Asignaciones registradas en Supabase para el selector, filtradas por Período y/o Estatus de Asignación
+const asignacionesParaFiltro = computed(() => {
+  return asignaciones.value.filter(asig => {
+    if (selectedPeriodo.value) {
+      const periodoAsig = (asig.anio_periodo || '').trim();
+      if (periodoAsig !== selectedPeriodo.value.trim()) {
+        return false;
+      }
+    }
+    if (selectedEstatusAsignacion.value) {
+      if (asig.asigna_estatus !== selectedEstatusAsignacion.value) {
+        return false;
+      }
+    }
+    return true;
+  });
+});
+
+// Sincronizar selección de asignación si cambia el período o estatus de asignación
+watch([selectedPeriodo, selectedEstatusAsignacion], () => {
+  if (selectedAsignacion.value) {
+    const sigueValida = asignacionesParaFiltro.value.some(
+      a => String(a.asigna_id) === String(selectedAsignacion.value)
+    );
+    if (!sigueValida) {
+      selectedAsignacion.value = '';
+    }
+  }
+});
+
+// Lista única de estatus de clase para filtro
 const estatusUnicos = computed(() => {
   const estatus = controlVista.value
     .map(c => c.control_estatus)
     .filter(Boolean);
   return [...new Set(estatus)].sort();
-});
-
-// Asignaciones activas para filtro
-const asignacionesActivas = computed(() => {
-  return asignaciones.value.filter(asig => asig.asigna_estatus === 'Activa');
 });
 
 // Profesores correspondientes al grado de la clase seleccionada en el modal
@@ -91,7 +148,7 @@ const profesoresFiltradosModal = computed(() => {
   return profesores.value.filter(p => p.grado_id === modalGradoId.value);
 });
 
-// Título dinámico para el header basado en la asignación seleccionada
+// Título dinámico para el header basado en la asignación o filtros seleccionados
 const dynamicTitle = computed(() => {
   if (selectedAsignacion.value) {
     const found = asignaciones.value.find(a => String(a.asigna_id) === String(selectedAsignacion.value));
@@ -99,16 +156,31 @@ const dynamicTitle = computed(() => {
       return `Ejecución - #${found.asigna_id} Prog: ${found.programa_tema} | Grado: ${found.grado_numero}`;
     }
   }
+  if (selectedPeriodo.value && selectedEstatusAsignacion.value) {
+    return `Ejecución (${selectedPeriodo.value} - ${selectedEstatusAsignacion.value})`;
+  }
+  if (selectedPeriodo.value) {
+    return `Ejecución (${selectedPeriodo.value})`;
+  }
+  if (selectedEstatusAsignacion.value) {
+    return `Ejecución (${selectedEstatusAsignacion.value})`;
+  }
   return 'Ejecución';
 });
 
-// Contador total basado en el filtro de asignación
+// Contador total basado en el filtro de asignación, período o estatus de asignación
 const totalCountForAsignacion = computed(() => {
-  if (!selectedAsignacion.value) return controlVista.value.length;
-  return controlVista.value.filter(c => String(c.asigna_id) === String(selectedAsignacion.value)).length;
+  if (selectedAsignacion.value) {
+    return controlVista.value.filter(c => String(c.asigna_id) === String(selectedAsignacion.value)).length;
+  }
+  if (selectedPeriodo.value || selectedEstatusAsignacion.value) {
+    const idsPermitidos = new Set(asignacionesParaFiltro.value.map(a => String(a.asigna_id)));
+    return controlVista.value.filter(c => idsPermitidos.has(String(c.asigna_id))).length;
+  }
+  return controlVista.value.length;
 });
 
-// Clases filtradas por texto, asignación y estatus
+// Clases filtradas por texto, asignación, estatus de clase, estatus de asignación y período
 const filteredControl = computed(() => {
   let list = [...controlVista.value];
 
@@ -120,9 +192,12 @@ const filteredControl = computed(() => {
     return (Number(a.clase_num) || 0) - (Number(b.clase_num) || 0);
   });
 
-  // Filtrar por asignación
+  // Filtrar por asignación específica o por filtros de período / estatus de asignación
   if (selectedAsignacion.value) {
     list = list.filter(c => String(c.asigna_id) === String(selectedAsignacion.value));
+  } else if (selectedPeriodo.value || selectedEstatusAsignacion.value) {
+    const idsPermitidos = new Set(asignacionesParaFiltro.value.map(a => String(a.asigna_id)));
+    list = list.filter(c => idsPermitidos.has(String(c.asigna_id)));
   }
 
   // Filtrar por estatus
@@ -501,15 +576,31 @@ const handleSave = async () => {
           placeholder="Buscar Fecha, # Clase, Clase o Profesor..."
         >
       </div>
-      <div style="width: 320px; max-width: 100%;">
-        <select v-model="selectedAsignacion" class="form-select">
-          <option value="">Asignaciones</option>
-          <option v-for="asig in asignacionesActivas" :key="asig.asigna_id" :value="asig.asigna_id">
-            #{{ asig.asigna_id }} - Prog: {{ asig.programa_tema }} | Grado: {{ asig.grado_numero }}
+      <div style="width: 160px; max-width: 100%;">
+        <select v-model="selectedPeriodo" class="form-select">
+          <option value="">Períodos</option>
+          <option v-for="p in periodosDisponibles" :key="p" :value="p">
+            {{ p }}
           </option>
         </select>
       </div>
-      <div style="width: 180px;">
+      <div style="width: 180px; max-width: 100%;">
+        <select v-model="selectedEstatusAsignacion" class="form-select">
+          <option value="">Estatus Asignación</option>
+          <option v-for="est in estatusAsignacionesOpciones" :key="est" :value="est">
+            {{ est }}
+          </option>
+        </select>
+      </div>
+      <div style="flex: 1 1 280px; max-width: 100%;">
+        <select v-model="selectedAsignacion" class="form-select">
+          <option value="">Asignaciones</option>
+          <option v-for="asig in asignacionesParaFiltro" :key="asig.asigna_id" :value="asig.asigna_id">
+            #{{ asig.asigna_id }} - Prog: {{ asig.programa_tema }} | Grado: {{ asig.grado_numero }} ({{ asig.asigna_estatus }})
+          </option>
+        </select>
+      </div>
+      <div style="width: 150px; max-width: 100%;">
         <select v-model="selectedEstatus" class="form-select">
           <option value="">Estatus</option>
           <option v-for="e in estatusUnicos" :key="e" :value="e">
